@@ -1,5 +1,5 @@
 {
-  "name": "friendsofhyperf/jwt",
+  "name": "kylesean/hyperf-jwt",
   "description": "A JWT (JSON Web Token) package for Hyperf framework.",
   "type": "library",
   "license": "MIT",
