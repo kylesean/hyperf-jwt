@@ -6,7 +6,7 @@
 ## 安装
 
 ```bash
-composer require friendsofhyperf/jwt
+composer require kylesean/hyperf-jwt
 ```
 
 ## 配置密钥和算法
