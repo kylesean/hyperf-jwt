@@ -44,13 +44,13 @@ class Manager implements ManagerInterface
     protected BlacklistInterface $blacklist;
     protected RequestParserFactoryInterface $requestParserFactory;
     protected ContainerInterface $container;
-    protected ConfigInterface $hyperfConfig; // Hyperf 的配置接口
+    protected ConfigInterface $hyperfConfig;
     protected PayloadFactoryInterface $payloadFactory;
-    protected int $ttl; // 令牌有效期（分钟）
-    protected int $refreshTtl; // 令牌刷新期（分钟）
-    protected string $issuer; // 签发者
-    protected string|array $audience; // 受众
-    protected string $subjectClaimName = 'sub'; // 主体声明的名称
+    protected int $ttl;
+    protected int $refreshTtl;
+    protected string $issuer;
+    protected string|array $audience;
+    protected string $subjectClaimName = 'sub';
 
 
     /**
@@ -60,7 +60,7 @@ class Manager implements ManagerInterface
      */
     public function __construct(
         ContainerInterface            $container,
-        ConfigInterface               $hyperfConfig, // 注入 Hyperf 的 ConfigInterface
+        ConfigInterface               $hyperfConfig,
         ValidatorInterface            $validator,
         BlacklistInterface            $blacklist,
         RequestParserFactoryInterface $requestParserFactory,
@@ -645,5 +645,12 @@ class Manager implements ManagerInterface
             // 降级处理，如果 random_bytes 失败
             return uniqid('', true) . sha1(microtime(true));
         }
+    }
+    /**
+     * {@inheritdoc}
+     */
+    public function getSubjectClaimKey(): string
+    {
+        return $this->subjectClaimName;
     }
 }

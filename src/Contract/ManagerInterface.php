@@ -136,4 +136,10 @@ interface ManagerInterface
      * 获取令牌的刷新期（Refresh Time To Live），单位为分钟。
      */
     public function getRefreshTtl(): int;
+
+    /**
+     * 获取subject_claim key
+     * @return string
+     */
+    public function getSubjectClaimKey(): string;
 }
