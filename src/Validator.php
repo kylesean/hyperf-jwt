@@ -181,7 +181,6 @@ class Validator implements ValidatorInterface
             if (!$token->hasClaim($claimName)) {
                 throw new TokenInvalidException(sprintf('Expected claim "%s" is missing.', $claimName));
             }
-
             $actualValue = $token->getClaim($claimName);
 
             // 特殊处理 aud 声明，它可能是数组

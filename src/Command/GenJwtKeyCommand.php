@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace FriendsOfHyperf\Jwt\Command;
 
+use _PHPStan_bc6352b8e\Symfony\Component\Console\Tester\CommandTester;
 use Hyperf\Command\Command as HyperfCommand;
 use Hyperf\Command\Annotation\Command;
 use Psr\Container\ContainerInterface;
@@ -124,7 +125,7 @@ class GenJwtKeyCommand extends HyperfCommand
         }
         $publicKeyPem = $publicKeyDetails['key'];
 
-        $this->outputKeyPairResults($privateKeyPem, $publicKeyPem, $password, strtoupper($algo));
+        $this->outputKeyPairResults($privateKeyPem, $publicKeyPem, $password, strtoupper($algo), $this->input->getOption('algo'));
     }
 
     protected function generateEcdsaKeyPair(string $algo): void
@@ -168,10 +169,6 @@ class GenJwtKeyCommand extends HyperfCommand
             // 如果需要密码，将未加密的 PKCS#8 私钥用密码加密
             // Lcobucci/jwt 的 InMemory::file/plainText 期望的是 PKCS#1 (RSA) 或 PKCS#8 (EC) 加密格式
             // openssl_pkey_export 导出的 EC 私钥已经是 PKCS#8 格式（如果 OpenSSL 版本较新）
-            // 如果要加密，可能需要类似 `openssl pkcs8 -topk8 -passout ...` 的操作，PHP中略复杂
-            // 对于 ECDSA，一个简单的方法是提示用户如何手动加密，或者使用未加密的私钥并强调文件权限保护
-            // 这里我们暂时不直接在PHP中实现EC私钥的密码加密，因为openssl_pkey_export对EC密钥的密码支持不如RSA直接
-            $this->output->warning("Password protection for ECDSA private keys via this command is complex to implement directly in PHP for broad compatibility. The private key is generated عشقunencrypted.");
             $this->output->writeln("It's highly recommended to secure the unencrypted private key file with strict file permissions, or encrypt it manually using OpenSSL tools if password protection is required for the key file itself.");
             $this->output->writeln("Example: openssl ec -in <unencrypted_private_key.pem> -out <encrypted_private_key.pem> -aes256 -passout pass:your_password");
             $password = null; // 重置password变量，因为我们没实际用它加密EC私钥
@@ -185,12 +182,12 @@ class GenJwtKeyCommand extends HyperfCommand
         }
         $publicKeyPem = $publicKeyDetails['key'];
 
-        $this->outputKeyPairResults($privateKeyPem, $publicKeyPem, $password, strtoupper($algo));
+        $this->outputKeyPairResults($privateKeyPem, $publicKeyPem, $password, strtoupper($algo), $this->input->getOption('algo'));
     }
 
-    protected function outputKeyPairResults(string $privateKeyPem, string $publicKeyPem, ?string $password, string $algoName): void
+    protected function outputKeyPairResults(string $privateKeyPem, string $publicKeyPem, ?string $password, string $algoNameForDisplay, string $algoOptionValue): void
     {
-        $this->output->success(sprintf('Successfully generated new JWT key pair for %s.', $algoName));
+        $this->output->success(sprintf('Successfully generated new JWT key pair for %s.', $algoNameForDisplay));
         $this->output->writeln('');
 
         $this->output->writeln('<comment>Private Key (SAVE THIS SECURELY - DO NOT COMMIT TO VERSION CONTROL IF HARDCODED):</comment>');
@@ -204,14 +201,13 @@ class GenJwtKeyCommand extends HyperfCommand
         $this->output->writeln('Please configure these in your <comment>jwt.php</comment> config or <comment>.env</comment> file:');
         $this->output->writeln('');
         $this->output->writeln("<info>// In config/autoload/jwt.php or your .env file:</info>");
-        $signerClassParts = explode('\\', $this->input->getOption('algo')); // 获取用户输入的算法类名
-        $signerClass = $this->input->getOption('algo');
+        $signerClass = $algoOptionValue; // 直接使用用户输入的 --algo 值
         if (!class_exists($signerClass)) { // 如果用户输入的是简写，尝试构建
-            $algoShort = str_replace(['rs','es'], '', strtolower($algoName)); // 256, 384, 512
-            $algoFamily = strtolower(substr($algoName, 0, 2)); // rs, es
-            $signerClass = '\\Lcobucci\\JWT\\Signer\\' . ucfirst($algoFamily) . '\\Sha' . $algoShort;
+            $algoShort = str_replace(['rs','es'], '', strtolower($algoNameForDisplay)); // 256, 384, 512
+            $algoFamily = substr(strtolower($algoNameForDisplay),0,2); // rs, es
+            // 修正类名构造
+            $signerClass = '\\Lcobucci\\JWT\\Signer\\' . ucfirst($algoFamily === 'rs' ? 'Rsa' : 'Ecdsa') . '\\Sha' . $algoShort;
         }
-
         $this->output->writeln("<info>'algo' => {$signerClass}::class,</info>");
         $this->output->writeln("<info>'keys' => [</info>");
         $this->output->writeln("<info>    'public' => env('JWT_PUBLIC_KEY', <<<EOT</info>");

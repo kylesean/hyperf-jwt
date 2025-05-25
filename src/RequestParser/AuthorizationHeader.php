@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace FriendsOfHyperf\Jwt\RequestParser;
 
 use FriendsOfHyperf\Jwt\Contract\RequestParser\RequestParserInterface;
+use Hyperf\Stringable\Str;
 use Psr\Http\Message\ServerRequestInterface;
-use function Hyperf\Support\str_contains; // 使用 Hyperf 的辅助函数
-use function Hyperf\Support\Str; // 使用 Hyperf 的字符串辅助类
 
 class AuthorizationHeader implements RequestParserInterface
 {

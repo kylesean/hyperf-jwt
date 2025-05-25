@@ -70,11 +70,11 @@ interface ValidatorInterface
      * 检查令牌是否包含所有必需的声明，并且可选地检查声明的值。
      *
      * @param TokenInterface $token 要检查的令牌
-     * @param array<string, mixed> $expectedClaims 期望的声明及其值。如果值设为 true，则只检查声明是否存在。
+     * @param array<string, mixed> $expectedClaimsToMatch 期望的声明及其值。如果值设为 true，则只检查声明是否存在。
      *                                        例如：['iss' => 'expected_issuer', 'sub' => true]
      *                                        表示 'iss' 必须是 'expected_issuer', 'sub' 必须存在但值不限。
      * @throws \FriendsOfHyperf\Jwt\Exception\TokenInvalidException 如果声明无效或缺失
      * @return void
      */
-    public function checkClaims(TokenInterface $token, array $expectedClaims = []): void;
+    public function checkClaims(TokenInterface $token, array $expectedClaimsToMatch = []): void;
 }
