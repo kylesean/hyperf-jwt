@@ -111,5 +111,3 @@ return [
     \FriendsOfHyperf\Jwt\Contract\PayloadFactoryInterface::class => \App\Service\MyCustomPayloadFactory::class,
 ];```
 ```
-## License
-[MIT](LICENSE)
