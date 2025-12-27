@@ -66,7 +66,7 @@ class ManagerTest extends TestCase
     protected Mockery\MockInterface|PayloadFactoryInterface $mockPayloadFactory;
 
 
-//    protected Mockery\MockInterface|Configuration $mockLcobucciConfig;
+    //    protected Mockery\MockInterface|Configuration $mockLcobucciConfig;
 //    protected Mockery\MockInterface|LcobucciBuilder $mockLcobucciBuilder;
 //    protected Mockery\MockInterface|LcobucciParser $mockLcobucciParser;
 //    protected Mockery\MockInterface|LcobucciValidator $mockLcobucciValidator;
@@ -156,13 +156,19 @@ class ManagerTest extends TestCase
             })->byDefault();
 
 
+        // 新增：创建真实的 LcobucciConfiguration 实例用于测试
+        // 这模拟了 LcobucciFactory 的行为
+        $lcobucciConfig = Configuration::forSymmetricSigner(
+            new Sha256(),
+            InMemory::plainText('test_secret_key_for_hs256_at_least_32_bytes_long')
+        );
+
         // 实例化 Manager
-        // Manager 的构造函数会调用 initLcobucciConfiguration()，
-        // 它会基于 mockHyperfConfig 和 mockContainer 来创建真实的 Lcobucci\JWT\Configuration 实例
         $this->manager = new Manager(
             $this->mockContainer,
             $this->mockHyperfConfig,
-            $this->mockOurValidator, // 使用新名
+            $lcobucciConfig,
+            $this->mockOurValidator,
             $this->mockBlacklist,
             $this->mockRequestParserFactory,
             $this->mockPayloadFactory
@@ -266,7 +272,9 @@ class ManagerTest extends TestCase
         $now = new DateTimeImmutable();
         $testTokenString = $this->generateTestHs256TokenString([
             'exp' => $now->add(new DateInterval('PT1H'))->getTimestamp(),
-            'iat' => $now->getTimestamp(), 'nbf' => $now->getTimestamp(), 'jti' => 'from_req_jti'
+            'iat' => $now->getTimestamp(),
+            'nbf' => $now->getTimestamp(),
+            'jti' => 'from_req_jti'
         ], 'test_secret_key_for_hs256_at_least_32_bytes_long');
 
         $this->mockRequestParserFactory->shouldReceive('getParserChain')->once()->andReturn([$mockParser]);
@@ -390,7 +398,7 @@ class ManagerTest extends TestCase
             unset($claims['iss']);
         }
         if (isset($claims['sub'])) {
-            $builder = $builder->relatedTo((string)$claims['sub']);
+            $builder = $builder->relatedTo((string) $claims['sub']);
             unset($claims['sub']);
         }
         if (isset($claims['aud'])) {

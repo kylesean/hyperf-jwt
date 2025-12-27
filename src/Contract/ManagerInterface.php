@@ -24,7 +24,7 @@ interface ManagerInterface
      * @return TokenInterface 创建的令牌对象
      * @throws \FriendsOfHyperf\Jwt\Exception\JwtException 如果创建令牌失败
      */
-    public function issueToken(array $customClaims = []): TokenInterface;
+    public function issueToken(array $customClaims = [], mixed $subject = null): TokenInterface;
 
     /**
      * 从给定的 JWT 字符串解析并验证令牌。
@@ -110,11 +110,9 @@ interface ManagerInterface
      */
     public function getLcobucciConfig(): LcobucciConfiguration;
 
-    /**
-     * 获取 JWT 载荷的工厂类/方法，用于生成令牌的默认声明。
-     * （此方法可能在后续实现 PayloadFactory 时添加）
-     * // public function getPayloadFactory(): PayloadFactoryInterface;
-     */
+    public function getPayloadFactory(): PayloadFactoryInterface;
+
+    public function setPayloadFactory(PayloadFactoryInterface $payloadFactory): self;
 
     /**
      * 获取用于生成和验证令牌的签名器。
