@@ -73,6 +73,8 @@ class GenJwtKeyCommand extends HyperfCommand
 
         if ($this->input->getOption('update-env')) {
             $this->updateEnvFile('JWT_SECRET', $secret);
+
+
         } elseif ($this->input->isInteractive() && $this->output->confirm('Do you want to attempt to update your .env file automatically?', false)) {
             $this->updateEnvFile('JWT_SECRET', $secret);
         }
