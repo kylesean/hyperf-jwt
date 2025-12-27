@@ -2,14 +2,13 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Command;
+namespace Kylesean\Jwt\Command;
 
-use _PHPStan_bc6352b8e\Symfony\Component\Console\Tester\CommandTester;
 use Hyperf\Command\Command as HyperfCommand;
 use Hyperf\Command\Annotation\Command;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Input\InputArgument; // 用于输出文件路径
+use Symfony\Component\Console\Input\InputArgument;
 
 #[Command]
 class GenJwtKeyCommand extends HyperfCommand
@@ -45,8 +44,11 @@ class GenJwtKeyCommand extends HyperfCommand
     {
         // ... (HMAC 生成逻辑保持不变) ...
         $length = 32;
-        if ($algo === 'hs384') { $length = 48; }
-        elseif ($algo === 'hs512') { $length = 64; }
+        if ($algo === 'hs384') {
+            $length = 48;
+        } elseif ($algo === 'hs512') {
+            $length = 64;
+        }
 
         try {
             $key = random_bytes($length);
@@ -65,7 +67,6 @@ class GenJwtKeyCommand extends HyperfCommand
         $this->output->writeln('');
         $this->output->writeln('Please set this value in your <comment>.env</comment> file as:');
         $this->output->writeln("JWT_SECRET={$secret}");
-        // ... (其他提示信息)
         $signerClass = '\\Lcobucci\\JWT\\Signer\\Hmac\\Sha' . substr($algo, 2);
         $this->output->writeln("<info>'algo' => {$signerClass}::class,</info>");
         $this->output->writeln('');
@@ -83,7 +84,8 @@ class GenJwtKeyCommand extends HyperfCommand
         $password = $this->input->getOption('password');
         if ($password === null && $this->input->isInteractive() && $this->output->confirm('Do you want to protect the private key with a password?', false)) {
             $password = $this->output->askHidden('Enter password for private key (leave empty for no password):');
-            if (empty($password)) $password = null;
+            if (empty($password))
+                $password = null;
         }
 
 
@@ -134,7 +136,8 @@ class GenJwtKeyCommand extends HyperfCommand
         $password = $this->input->getOption('password');
         if ($password === null && $this->input->isInteractive() && $this->output->confirm('Do you want to protect the private key with a password?', false)) {
             $password = $this->output->askHidden('Enter password for private key (leave empty for no password):');
-            if (empty($password)) $password = null;
+            if (empty($password))
+                $password = null;
         }
 
         $this->output->writeln(sprintf('Generating ECDSA key pair with curve %s for %s...', $curve, strtoupper($algo)));
@@ -203,8 +206,8 @@ class GenJwtKeyCommand extends HyperfCommand
         $this->output->writeln("<info>// In config/autoload/jwt.php or your .env file:</info>");
         $signerClass = $algoOptionValue; // 直接使用用户输入的 --algo 值
         if (!class_exists($signerClass)) { // 如果用户输入的是简写，尝试构建
-            $algoShort = str_replace(['rs','es'], '', strtolower($algoNameForDisplay)); // 256, 384, 512
-            $algoFamily = substr(strtolower($algoNameForDisplay),0,2); // rs, es
+            $algoShort = str_replace(['rs', 'es'], '', strtolower($algoNameForDisplay)); // 256, 384, 512
+            $algoFamily = substr(strtolower($algoNameForDisplay), 0, 2); // rs, es
             // 修正类名构造
             $signerClass = '\\Lcobucci\\JWT\\Signer\\' . ucfirst($algoFamily === 'rs' ? 'Rsa' : 'Ecdsa') . '\\Sha' . $algoShort;
         }

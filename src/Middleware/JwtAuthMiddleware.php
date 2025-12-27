@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Middleware;
+namespace Kylesean\Jwt\Middleware;
 
-use FriendsOfHyperf\Jwt\Contract\ManagerInterface;
-use FriendsOfHyperf\Jwt\Exception\TokenInvalidException;
+use Kylesean\Jwt\Contract\ManagerInterface;
+use Kylesean\Jwt\Exception\TokenInvalidException;
 use Hyperf\HttpServer\Contract\ResponseInterface as HttpResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;

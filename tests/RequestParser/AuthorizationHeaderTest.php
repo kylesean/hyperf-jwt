@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Tests\RequestParser;
+namespace Kylesean\Jwt\Tests\RequestParser;
 
-use FriendsOfHyperf\Jwt\RequestParser\AuthorizationHeader;
+use Kylesean\Jwt\RequestParser\AuthorizationHeader;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;

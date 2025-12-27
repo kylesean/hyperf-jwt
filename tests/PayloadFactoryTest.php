@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Tests;
+namespace Kylesean\Jwt\Tests;
 
 use DateTimeImmutable;
-use FriendsOfHyperf\Jwt\PayloadFactory;
+use Kylesean\Jwt\PayloadFactory;
 use Hyperf\Contract\ConfigInterface;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;

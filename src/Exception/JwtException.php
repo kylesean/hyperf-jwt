@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Exception;
+namespace Kylesean\Jwt\Exception;
 
 use RuntimeException; // 或者 \Exception，取决于你希望的异常层级
 

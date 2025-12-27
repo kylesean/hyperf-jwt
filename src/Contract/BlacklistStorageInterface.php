@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Contract;
+namespace Kylesean\Jwt\Contract;
 
 interface BlacklistStorageInterface
 {

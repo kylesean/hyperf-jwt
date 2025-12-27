@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Blacklist;
+namespace Kylesean\Jwt\Blacklist;
 
-use FriendsOfHyperf\Jwt\Contract\BlacklistStorageInterface;
+use Kylesean\Jwt\Contract\BlacklistStorageInterface;
 use Hyperf\Contract\CacheInterface;
 
 class HyperfCacheStorage implements BlacklistStorageInterface

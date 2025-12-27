@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Contract;
+namespace Kylesean\Jwt\Contract;
 
-use FriendsOfHyperf\Jwt\Contract\RequestParser\RequestParserFactoryInterface;
-use FriendsOfHyperf\Jwt\Contract\TokenInterface;
+use Kylesean\Jwt\Contract\RequestParser\RequestParserFactoryInterface;
+use Kylesean\Jwt\Contract\TokenInterface;
 use Lcobucci\JWT\Configuration as LcobucciConfiguration; // 底层库配置
 use Lcobucci\JWT\Signer; // 底层库签名器
 use Psr\Http\Message\ServerRequestInterface;
@@ -22,7 +22,7 @@ interface ManagerInterface
      *
      * @param array<string, mixed> $customClaims 要包含在 JWT 中的自定义声明
      * @return TokenInterface 创建的令牌对象
-     * @throws \FriendsOfHyperf\Jwt\Exception\JwtException 如果创建令牌失败
+     * @throws \Kylesean\Jwt\Exception\JwtException 如果创建令牌失败
      */
     public function issueToken(array $customClaims = [], mixed $subject = null): TokenInterface;
 
@@ -31,9 +31,9 @@ interface ManagerInterface
      *
      * @param string $jwtString JWT 字符串
      * @return TokenInterface|null 解析并验证通过的令牌对象，如果无效则返回 null 或抛出异常（取决于实现）
-     * @throws \FriendsOfHyperf\Jwt\Exception\TokenInvalidException 如果令牌无效
-     * @throws \FriendsOfHyperf\Jwt\Exception\TokenExpiredException 如果令牌已过期
-     * @throws \FriendsOfHyperf\Jwt\Exception\TokenNotYetValidException 如果令牌尚未生效
+     * @throws \Kylesean\Jwt\Exception\TokenInvalidException 如果令牌无效
+     * @throws \Kylesean\Jwt\Exception\TokenExpiredException 如果令牌已过期
+     * @throws \Kylesean\Jwt\Exception\TokenNotYetValidException 如果令牌尚未生效
      */
     public function parse(string $jwtString): ?TokenInterface;
 
@@ -55,8 +55,8 @@ interface ManagerInterface
      * @param bool $resetClaims 如果为 true，则新令牌的载荷将基于新的默认值，而不是从旧令牌复制。
      *                          自定义载荷仍需通过额外参数或配置传递。
      * @return TokenInterface 新的 JWT 令牌对象
-     * @throws \FriendsOfHyperf\Jwt\Exception\JwtException 如果刷新失败（例如，原令牌不在刷新期内或已彻底失效）
-     * @throws \FriendsOfHyperf\Jwt\Exception\TokenInvalidException 如果原令牌无法被加入黑名单（当需要时）
+     * @throws \Kylesean\Jwt\Exception\JwtException 如果刷新失败（例如，原令牌不在刷新期内或已彻底失效）
+     * @throws \Kylesean\Jwt\Exception\TokenInvalidException 如果原令牌无法被加入黑名单（当需要时）
      */
     public function refreshToken(string $oldTokenString, bool $forceForever = false, bool $resetClaims = false): TokenInterface;
 
@@ -67,7 +67,7 @@ interface ManagerInterface
      * @param bool $forceForever 如果为 true，则即使令牌没有 'jti' 声明，也尝试基于其他方式（可能不太可靠）加入黑名单，
      *                           或者如果黑名单配置为永久存储。
      * @return $this
-     * @throws \FriendsOfHyperf\Jwt\Exception\JwtException 如果令牌无法被加入黑名单
+     * @throws \Kylesean\Jwt\Exception\JwtException 如果令牌无法被加入黑名单
      */
     public function invalidate(TokenInterface $token, bool $forceForever = false): self;
 

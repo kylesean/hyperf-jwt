@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Contract\RequestParser;
+namespace Kylesean\Jwt\Contract\RequestParser;
 
 /**
  * Interface RequestParserFactoryInterface.
@@ -24,9 +24,9 @@ interface RequestParserFactoryInterface
      * 根据给定的解析器类名或配置数组，创建一个解析器实例。
      *
      * @param string|array $parserConfig 解析器的类名，或者一个包含 'class' 和可选参数的配置数组。
-     *                                   例如：\FriendsOfHyperf\Jwt\RequestParser\AuthorizationHeader::class
+     *                                   例如：\Kylesean\Jwt\RequestParser\AuthorizationHeader::class
      *                                   或：[
-     *                                       'class' => \FriendsOfHyperf\Jwt\RequestParser\QueryString::class,
+     *                                       'class' => \Kylesean\Jwt\RequestParser\QueryString::class,
      *                                       'options' => ['name' => 'jwt_token']
      *                                   ]
      * @return RequestParserInterface|null 如果无法创建解析器则返回 null。
@@ -40,8 +40,8 @@ interface RequestParserFactoryInterface
      * @param array $parsersConfig 一个解析器配置数组，每个元素可以是类名或配置数组。
      *                             例如：
      *                             [
-     *                                 \FriendsOfHyperf\Jwt\RequestParser\AuthorizationHeader::class,
-     *                                 ['class' => \FriendsOfHyperf\Jwt\RequestParser\QueryString::class, 'options' => ['name' => 'custom_token_param']],
+     *                                 \Kylesean\Jwt\RequestParser\AuthorizationHeader::class,
+     *                                 ['class' => \Kylesean\Jwt\RequestParser\QueryString::class, 'options' => ['name' => 'custom_token_param']],
      *                                 new MyCustomParser(), // 也可以是已实例化的解析器对象
      *                             ]
      * @return $this

@@ -2,14 +2,13 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Tests;
+namespace Kylesean\Jwt\Tests;
 
 use DateTimeImmutable;
-use FriendsOfHyperf\Jwt\Blacklist;
-use FriendsOfHyperf\Jwt\Cache\CacheFactory; // 我们会 mock 这个工厂
-use FriendsOfHyperf\Jwt\Contract\TokenInterface;
+use Kylesean\Jwt\Blacklist;
+use Kylesean\Jwt\Cache\CacheFactory;
+use Kylesean\Jwt\Contract\TokenInterface;
 use Hyperf\Contract\ConfigInterface;
-use Hyperf\Logger\LoggerFactory; // 用于构造函数，但可以 mock
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -28,8 +27,6 @@ class BlacklistTest extends TestCase
     protected Mockery\MockInterface|CacheInterface $mockCache;
     protected Mockery\MockInterface|ConfigInterface $mockConfig;
     protected Mockery\MockInterface|CacheFactory $mockCacheFactory;
-    protected Mockery\MockInterface|LoggerFactory $mockLoggerFactory;
-    protected Mockery\MockInterface|LoggerInterface $mockLogger; // Blacklist 内部使用的 logger
 
     protected string $defaultCachePrefix = 'jwt_blacklist_';
     protected int $defaultGracePeriod = 3600; // 1 hour in seconds
@@ -41,26 +38,21 @@ class BlacklistTest extends TestCase
         $this->mockCache = Mockery::mock(CacheInterface::class);
         $this->mockConfig = Mockery::mock(ConfigInterface::class);
         $this->mockCacheFactory = Mockery::mock(CacheFactory::class);
-        $this->mockLoggerFactory = Mockery::mock(LoggerFactory::class);
-        $this->mockLogger = Mockery::mock(LoggerInterface::class)->shouldIgnoreMissing(); // 忽略日志调用细节
 
         // 配置 CacheFactory mock 返回我们的 mockCache
         $this->mockCacheFactory->shouldReceive('get')->andReturn($this->mockCache)->byDefault();
 
-        // 配置 LoggerFactory mock 返回我们的 mockLogger
-        $this->mockLoggerFactory->shouldReceive('get')->with('jwt_blacklist')->andReturn($this->mockLogger)->byDefault();
-
         // 配置 ConfigInterface mock 的默认返回值
         $this->mockConfig->shouldReceive('get')
-            ->with('jwt.blacklist_grace_period', Mockery::any()) // 允许默认值
+            ->with('jwt.blacklist_grace_period', 3600)
             ->andReturn($this->defaultGracePeriod)
             ->byDefault();
         $this->mockConfig->shouldReceive('get')
-            ->with('jwt.blacklist_cache_prefix')
-            ->andReturn(null) // 默认不使用自定义前缀，让 Blacklist 用自己的默认值
+            ->with('jwt.blacklist_cache_prefix', 'jwt_blacklist_')
+            ->andReturn($this->defaultCachePrefix)
             ->byDefault();
 
-        $this->blacklist = new Blacklist($this->mockCacheFactory, $this->mockConfig, $this->mockLoggerFactory);
+        $this->blacklist = new Blacklist($this->mockCacheFactory, $this->mockConfig);
     }
 
     protected function createMockToken(?string $jti, ?DateTimeImmutable $exp = null): TokenInterface
@@ -188,12 +180,12 @@ class BlacklistTest extends TestCase
     public function testUsesCustomCachePrefixFromConfig(): void
     {
         $customPrefix = 'my_app_jwt_bl_';
-        $this->mockConfig->shouldReceive('get') // 覆盖 setUp 中的默认
-        ->with('jwt.blacklist_cache_prefix')
+        $this->mockConfig->shouldReceive('get')
+            ->with('jwt.blacklist_cache_prefix', 'jwt_blacklist_')
             ->andReturn($customPrefix);
 
         // 重新创建 Blacklist 实例以使新的 config mock 生效
-        $blacklistWithCustomPrefix = new Blacklist($this->mockCacheFactory, $this->mockConfig, $this->mockLoggerFactory);
+        $blacklistWithCustomPrefix = new Blacklist($this->mockCacheFactory, $this->mockConfig);
 
         $jti = 'test_jti_custom_prefix';
         $token = $this->createMockToken($jti, new DateTimeImmutable('+1 hour'));

@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Contract;
+namespace Kylesean\Jwt\Contract;
 
-use FriendsOfHyperf\Jwt\Contract\TokenInterface; // 我们的令牌接口
-
+use Kylesean\Jwt\Contract\TokenInterface;
 /**
  * Interface BlacklistInterface.
  *

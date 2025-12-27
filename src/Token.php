@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt;
+namespace Kylesean\Jwt;
 
 use DateTimeImmutable;
-use FriendsOfHyperf\Jwt\Contract\TokenInterface;
-use Lcobucci\JWT\Token as LcobucciPlainToken; // 通常 lcobucci 解析后得到的是 Plain 对象
-use Lcobucci\JWT\UnencryptedToken; // lcobucci/jwt v4/v5 的基类或接口
+use Kylesean\Jwt\Contract\TokenInterface;
+use Lcobucci\JWT\Token as LcobucciPlainToken;
+use Lcobucci\JWT\UnencryptedToken;
 
 class Token implements TokenInterface
 {
-    protected UnencryptedToken $lcobucciToken; // 底层 lcobucci 令牌实例
+    protected UnencryptedToken $lcobucciToken;
 
     /**
      * 构造函数.

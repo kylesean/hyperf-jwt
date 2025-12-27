@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Contract;
+namespace Kylesean\Jwt\Contract;
 
-use FriendsOfHyperf\Jwt\Contract\TokenInterface; // 我们的令牌接口
+use Kylesean\Jwt\Contract\TokenInterface; // 我们的令牌接口
 
 /**
  * Interface ValidatorInterface.
@@ -48,9 +48,9 @@ interface ValidatorInterface
      * @param TokenInterface $token 要验证的令牌对象
      * @param bool $checkStandardClaims 是否检查标准时间声明 (exp, nbf, iat)
      * @param array<string, mixed> $expectedClaims 期望的声明及其值，例如 ['iss' => 'my-app', 'aud' => 'my-audience']
-     * @throws \FriendsOfHyperf\Jwt\Exception\TokenExpiredException 如果令牌已过期
-     * @throws \FriendsOfHyperf\Jwt\Exception\TokenInvalidException 如果令牌无效（例如，声明缺失或不匹配）
-     * @throws \FriendsOfHyperf\Jwt\Exception\TokenNotYetValidException 如果令牌尚未生效
+     * @throws \Kylesean\Jwt\Exception\TokenExpiredException 如果令牌已过期
+     * @throws \Kylesean\Jwt\Exception\TokenInvalidException 如果令牌无效（例如，声明缺失或不匹配）
+     * @throws \Kylesean\Jwt\Exception\TokenNotYetValidException 如果令牌尚未生效
      * @return void
      */
     public function validate(TokenInterface $token, bool $checkStandardClaims = true, array $expectedClaims = []): void;
@@ -59,9 +59,9 @@ interface ValidatorInterface
      * 检查令牌的标准时间声明 (exp, nbf, iat)。
      *
      * @param TokenInterface $token 要检查的令牌
-     * @throws \FriendsOfHyperf\Jwt\Exception\TokenExpiredException
-     * @throws \FriendsOfHyperf\Jwt\Exception\TokenNotYetValidException
-     * @throws \FriendsOfHyperf\Jwt\Exception\TokenInvalidException 如果 'iat' 在 'nbf' 或 'exp' 之后
+     * @throws \Kylesean\Jwt\Exception\TokenExpiredException
+     * @throws \Kylesean\Jwt\Exception\TokenNotYetValidException
+     * @throws \Kylesean\Jwt\Exception\TokenInvalidException 如果 'iat' 在 'nbf' 或 'exp' 之后
      * @return void
      */
     public function checkTimestamps(TokenInterface $token): void;
@@ -73,7 +73,7 @@ interface ValidatorInterface
      * @param array<string, mixed> $expectedClaimsToMatch 期望的声明及其值。如果值设为 true，则只检查声明是否存在。
      *                                        例如：['iss' => 'expected_issuer', 'sub' => true]
      *                                        表示 'iss' 必须是 'expected_issuer', 'sub' 必须存在但值不限。
-     * @throws \FriendsOfHyperf\Jwt\Exception\TokenInvalidException 如果声明无效或缺失
+     * @throws \Kylesean\Jwt\Exception\TokenInvalidException 如果声明无效或缺失
      * @return void
      */
     public function checkClaims(TokenInterface $token, array $expectedClaimsToMatch = []): void;

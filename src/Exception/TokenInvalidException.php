@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Exception;
+namespace Kylesean\Jwt\Exception;
 
 /**
  * Class TokenInvalidException.

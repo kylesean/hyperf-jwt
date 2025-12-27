@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Cache;
+namespace Kylesean\Jwt\Cache;
 
 use Hyperf\Contract\ConfigInterface;
 use Psr\Container\ContainerInterface;
@@ -10,7 +10,7 @@ use Psr\SimpleCache\CacheInterface;
 use Hyperf\Cache\CacheManager;
 
 // Hyperf 核心的缓存管理器
-use FriendsOfHyperf\Jwt\Exception\JwtException;
+use Kylesean\Jwt\Exception\JwtException;
 
 // 引入我们定义的异常基类
 

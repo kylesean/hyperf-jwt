@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Contract\RequestParser;
+namespace Kylesean\Jwt\Contract\RequestParser;
 
 use Psr\Http\Message\ServerRequestInterface; // PSR-7 服务器请求接口
 

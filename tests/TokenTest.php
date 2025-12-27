@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Tests;
+namespace Kylesean\Jwt\Tests;
 
 use DateTimeImmutable;
-use FriendsOfHyperf\Jwt\Token as OurToken; // 我们要测试的 Token 类
+use Kylesean\Jwt\Token as OurToken; // 我们要测试的 Token 类
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Signer\Key\InMemory;

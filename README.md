@@ -24,7 +24,7 @@ composer require kylesean/hyperf-jwt
 
 ### 1. 发布配置文件
 ```bash
-php bin/hyperf.php vendor:publish friendsofhyperf/jwt
+php bin/hyperf.php vendor:publish kylesean/hyperf-jwt
 ```
 
 ### 2. 生成密钥 (ECC 或 HMAC)
@@ -39,7 +39,7 @@ php bin/hyperf.php jwt:gen-key --algo=HS256
 
 ### 签发 Token
 ```php
-use FriendsOfHyperf\Jwt\Contract\ManagerInterface;
+use Kylesean\Jwt\Contract\ManagerInterface;
 
 public function login(ManagerInterface $manager)
 {
@@ -56,13 +56,13 @@ public function login(ManagerInterface $manager)
 ```
 
 ### 身份验证中间件
-在路由或控制器上挂载 `FriendsOfHyperf\Jwt\Middleware\JwtAuthMiddleware` 即可实现自动拦截。
+在路由或控制器上挂载 `Kylesean\Jwt\Middleware\JwtAuthMiddleware` 即可实现自动拦截。
 
 ```php
 // config/routes.php
 Router::addGroup('/admin', function () {
     Router::get('/profile', [App\Controller\UserController::class, 'profile']);
-}, ['middleware' => [FriendsOfHyperf\Jwt\Middleware\JwtAuthMiddleware::class]]);
+}, ['middleware' => [Kylesean\Jwt\Middleware\JwtAuthMiddleware::class]]);
 ```
 
 ## 🛡️ 异常处理
@@ -84,7 +84,7 @@ Router::addGroup('/admin', function () {
 ```php
 // config/dependencies.php
 return [
-    \FriendsOfHyperf\Jwt\Contract\PayloadFactoryInterface::class => \App\Jwt\CustomPayloadFactory::class,
+    \Kylesean\Jwt\Contract\PayloadFactoryInterface::class => \App\Jwt\CustomPayloadFactory::class,
 ];
 ```
 

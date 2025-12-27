@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\RequestParser;
+namespace Kylesean\Jwt\RequestParser;
 
-use FriendsOfHyperf\Jwt\Contract\RequestParser\RequestParserInterface;
+use Kylesean\Jwt\Contract\RequestParser\RequestParserInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 class QueryString implements RequestParserInterface

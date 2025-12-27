@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt;
+namespace Kylesean\Jwt;
 
 use DateTimeImmutable;
 use DateInterval;
-use FriendsOfHyperf\Jwt\Contract\PayloadFactoryInterface;
+use Kylesean\Jwt\Contract\PayloadFactoryInterface;
 use Hyperf\Contract\ConfigInterface; // 用于获取配置
 
 class PayloadFactory implements PayloadFactoryInterface

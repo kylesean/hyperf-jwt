@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt;
+namespace Kylesean\Jwt;
 
 use DateTimeImmutable;
 use DateInterval;
-use FriendsOfHyperf\Jwt\Contract\BlacklistInterface;
-use FriendsOfHyperf\Jwt\Contract\ManagerInterface;
-use FriendsOfHyperf\Jwt\Contract\RequestParser\RequestParserFactoryInterface;
-use FriendsOfHyperf\Jwt\Contract\TokenInterface;
-use FriendsOfHyperf\Jwt\Contract\ValidatorInterface;
-use FriendsOfHyperf\Jwt\Exception\JwtException;
-use FriendsOfHyperf\Jwt\Exception\TokenInvalidException;
-use FriendsOfHyperf\Jwt\Exception\TokenExpiredException;
-use FriendsOfHyperf\Jwt\Exception\TokenNotYetValidException;
+use Kylesean\Jwt\Contract\BlacklistInterface;
+use Kylesean\Jwt\Contract\ManagerInterface;
+use Kylesean\Jwt\Contract\RequestParser\RequestParserFactoryInterface;
+use Kylesean\Jwt\Contract\TokenInterface;
+use Kylesean\Jwt\Contract\ValidatorInterface;
+use Kylesean\Jwt\Exception\JwtException;
+use Kylesean\Jwt\Exception\TokenInvalidException;
+use Kylesean\Jwt\Exception\TokenExpiredException;
+use Kylesean\Jwt\Exception\TokenNotYetValidException;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\HttpServer\Contract\RequestInterface as HyperfRequestInterface;
 use Lcobucci\Clock\SystemClock;
@@ -27,7 +27,7 @@ use Lcobucci\JWT\Validation\Constraint\SignedWith;
 use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
 use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
 use Psr\Http\Message\ServerRequestInterface;
-use FriendsOfHyperf\Jwt\Contract\PayloadFactoryInterface;
+use Kylesean\Jwt\Contract\PayloadFactoryInterface;
 
 class Manager implements ManagerInterface
 {
@@ -162,10 +162,12 @@ class Manager implements ManagerInterface
 
         // 3. 校验其他约束 (iss, aud 等)
         $otherConstraints = $this->getVerificationConstraints();
-        try {
-            $this->lcobucciConfig->validator()->assert($lcobucciToken, ...$otherConstraints);
-        } catch (RequiredConstraintsViolated $e) {
-            $this->handleValidationFailure($e);
+        if (!empty($otherConstraints)) {
+            try {
+                $this->lcobucciConfig->validator()->assert($lcobucciToken, ...$otherConstraints);
+            } catch (RequiredConstraintsViolated $e) {
+                $this->handleValidationFailure($e);
+            }
         }
 
         if ($this->hyperfConfig->get('jwt.blacklist_enabled', true) && $this->blacklist->has($ourToken)) {

@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt;
+namespace Kylesean\Jwt;
 
-use FriendsOfHyperf\Jwt\Blacklist;
-use FriendsOfHyperf\Jwt\Cache\CacheFactory;
-use FriendsOfHyperf\Jwt\Cache\CacheItemPoolFactory;
-use FriendsOfHyperf\Jwt\Command\GenJwtKeyCommand;
-use FriendsOfHyperf\Jwt\Contract\BlacklistInterface;
-use FriendsOfHyperf\Jwt\Contract\ManagerInterface;
-use FriendsOfHyperf\Jwt\Contract\RequestParser\RequestParserFactoryInterface;
-use FriendsOfHyperf\Jwt\Contract\RequestParser\RequestParserInterface;
-use FriendsOfHyperf\Jwt\Contract\TokenInterface;
-use FriendsOfHyperf\Jwt\Contract\ValidatorInterface;
-use FriendsOfHyperf\Jwt\Manager;
-use FriendsOfHyperf\Jwt\RequestParser\RequestParserFactory;
-use FriendsOfHyperf\Jwt\Token;
-use FriendsOfHyperf\Jwt\Validator;
-use FriendsOfHyperf\Jwt\Contract\PayloadFactoryInterface;
-use FriendsOfHyperf\Jwt\PayloadFactory;
+use Kylesean\Jwt\Blacklist;
+use Kylesean\Jwt\Cache\CacheFactory;
+use Kylesean\Jwt\Cache\CacheItemPoolFactory;
+use Kylesean\Jwt\Command\GenJwtKeyCommand;
+use Kylesean\Jwt\Contract\BlacklistInterface;
+use Kylesean\Jwt\Contract\ManagerInterface;
+use Kylesean\Jwt\Contract\RequestParser\RequestParserFactoryInterface;
+use Kylesean\Jwt\Contract\RequestParser\RequestParserInterface;
+use Kylesean\Jwt\Contract\TokenInterface;
+use Kylesean\Jwt\Contract\ValidatorInterface;
+use Kylesean\Jwt\Manager;
+use Kylesean\Jwt\RequestParser\RequestParserFactory;
+use Kylesean\Jwt\Token;
+use Kylesean\Jwt\Validator;
+use Kylesean\Jwt\Contract\PayloadFactoryInterface;
+use Kylesean\Jwt\PayloadFactory;
 
 class ConfigProvider
 {
@@ -30,7 +30,7 @@ class ConfigProvider
                     // 核心 JWT 管理器
                 ManagerInterface::class => Manager::class,
                 // Lcobucci JWT 配置对象
-                \Lcobucci\JWT\Configuration::class => \FriendsOfHyperf\Jwt\Factory\LcobucciFactory::class,
+                \Lcobucci\JWT\Configuration::class => \Kylesean\Jwt\Factory\LcobucciFactory::class,
                     // Token 对象实现
                 TokenInterface::class => Token::class,
                     // JWT 验证器
@@ -51,7 +51,7 @@ class ConfigProvider
             'publish' => [
                 [
                     'id' => 'config',
-                    'description' => 'The config for friendsofhyperf/jwt.', // 配置描述
+                    'description' => 'The config for kylesean/hyperf-jwt.', // 配置描述
                     'source' => __DIR__ . '/../publish/jwt.php',
                     'destination' => (defined('BASE_PATH') ? BASE_PATH : '') . '/config/autoload/jwt.php',
                 ],

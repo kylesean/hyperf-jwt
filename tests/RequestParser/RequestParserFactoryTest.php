@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Tests\RequestParser;
+namespace Kylesean\Jwt\Tests\RequestParser;
 
-use FriendsOfHyperf\Jwt\Contract\RequestParser\RequestParserInterface;
-use FriendsOfHyperf\Jwt\RequestParser\AuthorizationHeader;
-use FriendsOfHyperf\Jwt\RequestParser\Cookie;
-use FriendsOfHyperf\Jwt\RequestParser\InputSource;
-use FriendsOfHyperf\Jwt\RequestParser\QueryString;
-use FriendsOfHyperf\Jwt\RequestParser\RequestParserFactory;
+use Kylesean\Jwt\Contract\RequestParser\RequestParserInterface;
+use Kylesean\Jwt\RequestParser\AuthorizationHeader;
+use Kylesean\Jwt\RequestParser\Cookie;
+use Kylesean\Jwt\RequestParser\InputSource;
+use Kylesean\Jwt\RequestParser\QueryString;
+use Kylesean\Jwt\RequestParser\RequestParserFactory;
 use Hyperf\Contract\ConfigInterface;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;

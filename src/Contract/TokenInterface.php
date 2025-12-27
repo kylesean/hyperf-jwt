@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Contract;
+namespace Kylesean\Jwt\Contract;
 
 use DateTimeImmutable;
 use Lcobucci\JWT\Token as LcobucciToken; // 引入底层库的 Token 类型

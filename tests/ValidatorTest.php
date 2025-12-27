@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Tests;
+namespace Kylesean\Jwt\Tests;
 
 use DateTimeImmutable;
 use DateInterval;
-use FriendsOfHyperf\Jwt\Contract\TokenInterface;
-use FriendsOfHyperf\Jwt\Exception\TokenExpiredException;
-use FriendsOfHyperf\Jwt\Exception\TokenInvalidException;
-use FriendsOfHyperf\Jwt\Exception\TokenNotYetValidException;
-use FriendsOfHyperf\Jwt\Validator;
+use Kylesean\Jwt\Contract\TokenInterface;
+use Kylesean\Jwt\Exception\TokenExpiredException;
+use Kylesean\Jwt\Exception\TokenInvalidException;
+use Kylesean\Jwt\Exception\TokenNotYetValidException;
+use Kylesean\Jwt\Validator;
 use Mockery; // 我们将使用 Mockery 来创建 TokenInterface 的 mock 对象
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration; // Mockery 与 PHPUnit 集成
 use PHPUnit\Framework\TestCase;

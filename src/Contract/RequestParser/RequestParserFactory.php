@@ -1,6 +1,8 @@
 <?php
 
-namespace FriendsOfHyperf\Jwt\Contract\RequestParser;
+declare(strict_types=1);
+
+namespace Kylesean\Jwt\Contract\RequestParser;
 
 class RequestParserFactory
 {

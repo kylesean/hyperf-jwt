@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\RequestParser;
+namespace Kylesean\Jwt\RequestParser;
 
-use FriendsOfHyperf\Jwt\Contract\RequestParser\RequestParserFactoryInterface;
-use FriendsOfHyperf\Jwt\Contract\RequestParser\RequestParserInterface;
+use Kylesean\Jwt\Contract\RequestParser\RequestParserFactoryInterface;
+use Kylesean\Jwt\Contract\RequestParser\RequestParserInterface;
 use Hyperf\Contract\ConfigInterface;
 use Psr\Container\ContainerInterface;
 // 引入我们已创建的解析器类，以便在默认配置中使用
-use FriendsOfHyperf\Jwt\RequestParser\AuthorizationHeader;
-use FriendsOfHyperf\Jwt\RequestParser\QueryString;
-use FriendsOfHyperf\Jwt\RequestParser\InputSource;
-use FriendsOfHyperf\Jwt\RequestParser\Cookie;
+use Kylesean\Jwt\RequestParser\AuthorizationHeader;
+use Kylesean\Jwt\RequestParser\QueryString;
+use Kylesean\Jwt\RequestParser\InputSource;
+use Kylesean\Jwt\RequestParser\Cookie;
 
 class RequestParserFactory implements RequestParserFactoryInterface
 {

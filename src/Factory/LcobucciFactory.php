@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Factory;
+namespace Kylesean\Jwt\Factory;
 
-use FriendsOfHyperf\Jwt\Exception\JwtException;
+use Kylesean\Jwt\Exception\JwtException;
 use Hyperf\Contract\ConfigInterface;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Signer;

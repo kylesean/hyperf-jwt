@@ -38,12 +38,12 @@
   },
   "autoload": {
     "psr-4": {
-      "FriendsOfHyperf\\Jwt\\": "src/"
+      "Kylesean\\Jwt\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "FriendsOfHyperf\\Jwt\\Tests\\": "tests/"
+      "Kylesean\\Jwt\\Tests\\": "tests/"
     }
   },
   "minimum-stability": "dev",
@@ -59,7 +59,7 @@
   },
   "extra": {
     "hyperf": {
-      "config": "FriendsOfHyperf\\Jwt\\ConfigProvider"
+      "config": "Kylesean\\Jwt\\ConfigProvider"
     }
   }
 }

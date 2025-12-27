@@ -213,17 +213,17 @@ return [
     | - 'input': 从请求体 (JSON/Form Post) 获取 (默认参数名 token)
     |
     | 你可以自定义每个解析器的参数，例如：
-    | \FriendsOfHyperf\Jwt\RequestParser\AuthorizationHeader::class => ['prefix' => 'bearer', 'name' => 'authorization'],
-    | \FriendsOfHyperf\Jwt\RequestParser\QueryString::class => ['name' => 'jwt_token'],
-    | \FriendsOfHyperf\Jwt\RequestParser\InputSource::class => ['name' => 'jwt_token'],
-    | \FriendsOfHyperf\Jwt\RequestParser\Cookie::class => ['name' => 'jwt_token'],
+    | \Kylesean\Jwt\RequestParser\AuthorizationHeader::class => ['prefix' => 'bearer', 'name' => 'authorization'],
+    | \Kylesean\Jwt\RequestParser\QueryString::class => ['name' => 'jwt_token'],
+    | \Kylesean\Jwt\RequestParser\InputSource::class => ['name' => 'jwt_token'],
+    | \Kylesean\Jwt\RequestParser\Cookie::class => ['name' => 'jwt_token'],
     |
     */
     'token_parsers' => [
-        \FriendsOfHyperf\Jwt\RequestParser\AuthorizationHeader::class,
-        \FriendsOfHyperf\Jwt\RequestParser\QueryString::class,
-        \FriendsOfHyperf\Jwt\RequestParser\InputSource::class,
-        \FriendsOfHyperf\Jwt\RequestParser\Cookie::class,
+        \Kylesean\Jwt\RequestParser\AuthorizationHeader::class,
+        \Kylesean\Jwt\RequestParser\QueryString::class,
+        \Kylesean\Jwt\RequestParser\InputSource::class,
+        \Kylesean\Jwt\RequestParser\Cookie::class,
     ],
 
     /*

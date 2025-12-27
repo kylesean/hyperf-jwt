@@ -2,33 +2,33 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt\Tests;
+namespace Kylesean\Jwt\Tests;
 
 use DateTimeImmutable;
 use DateInterval;
-use FriendsOfHyperf\Jwt\Blacklist;
+use Kylesean\Jwt\Blacklist;
 
 // Mock BlacklistInterface
-use FriendsOfHyperf\Jwt\Contract\BlacklistInterface;
-use FriendsOfHyperf\Jwt\Contract\PayloadFactoryInterface;
-use FriendsOfHyperf\Jwt\Contract\RequestParser\RequestParserFactoryInterface;
-use FriendsOfHyperf\Jwt\Contract\RequestParser\RequestParserInterface;
-use FriendsOfHyperf\Jwt\Contract\TokenInterface;
-use FriendsOfHyperf\Jwt\Contract\ValidatorInterface;
-use FriendsOfHyperf\Jwt\Exception\JwtException;
-use FriendsOfHyperf\Jwt\Exception\TokenExpiredException;
-use FriendsOfHyperf\Jwt\Exception\TokenInvalidException;
-use FriendsOfHyperf\Jwt\Manager;
-use FriendsOfHyperf\Jwt\PayloadFactory;
+use Kylesean\Jwt\Contract\BlacklistInterface;
+use Kylesean\Jwt\Contract\PayloadFactoryInterface;
+use Kylesean\Jwt\Contract\RequestParser\RequestParserFactoryInterface;
+use Kylesean\Jwt\Contract\RequestParser\RequestParserInterface;
+use Kylesean\Jwt\Contract\TokenInterface;
+use Kylesean\Jwt\Contract\ValidatorInterface;
+use Kylesean\Jwt\Exception\JwtException;
+use Kylesean\Jwt\Exception\TokenExpiredException;
+use Kylesean\Jwt\Exception\TokenInvalidException;
+use Kylesean\Jwt\Manager;
+use Kylesean\Jwt\PayloadFactory;
 
 // Mock PayloadFactoryInterface
-use FriendsOfHyperf\Jwt\RequestParser\RequestParserFactory;
+use Kylesean\Jwt\RequestParser\RequestParserFactory;
 
 // Mock RequestParserFactoryInterface
-use FriendsOfHyperf\Jwt\Token;
+use Kylesean\Jwt\Token;
 
 // 用于 make(Token::class)
-use FriendsOfHyperf\Jwt\Validator;
+use Kylesean\Jwt\Validator;
 
 // Mock ValidatorInterface
 use Hyperf\Contract\ConfigInterface;
@@ -47,7 +47,7 @@ use Lcobucci\JWT\Validation\Validator as LcobucciValidator;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerInterface;
+use Hyperf\Contract\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
@@ -65,13 +65,6 @@ class ManagerTest extends TestCase
     protected Mockery\MockInterface|RequestParserFactoryInterface $mockRequestParserFactory;
     protected Mockery\MockInterface|PayloadFactoryInterface $mockPayloadFactory;
 
-
-    //    protected Mockery\MockInterface|Configuration $mockLcobucciConfig;
-//    protected Mockery\MockInterface|LcobucciBuilder $mockLcobucciBuilder;
-//    protected Mockery\MockInterface|LcobucciParser $mockLcobucciParser;
-//    protected Mockery\MockInterface|LcobucciValidator $mockLcobucciValidator;
-//    protected Mockery\MockInterface|Signer $mockSigner;
-//    protected Mockery\MockInterface|InMemory $mockKey; // Key for signing/verification
 
     protected Manager $manager;
 

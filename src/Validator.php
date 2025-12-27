@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfHyperf\Jwt;
+namespace Kylesean\Jwt;
 
 use DateTimeImmutable;
 use DateInterval;
-use FriendsOfHyperf\Jwt\Contract\TokenInterface;
-use FriendsOfHyperf\Jwt\Contract\ValidatorInterface;
-use FriendsOfHyperf\Jwt\Exception\TokenExpiredException;
-use FriendsOfHyperf\Jwt\Exception\TokenInvalidException;
-use FriendsOfHyperf\Jwt\Exception\TokenNotYetValidException;
+use Kylesean\Jwt\Contract\TokenInterface;
+use Kylesean\Jwt\Contract\ValidatorInterface;
+use Kylesean\Jwt\Exception\TokenExpiredException;
+use Kylesean\Jwt\Exception\TokenInvalidException;
+use Kylesean\Jwt\Exception\TokenNotYetValidException;
 
 class Validator implements ValidatorInterface
 {
@@ -194,7 +194,7 @@ class Validator implements ValidatorInterface
                 // 或者，如果配置中指定多个aud，token中也需要包含所有这些aud
                 $match = false;
                 foreach ($expectedAudience as $expectedAud) {
-                    if (in_array((string)$expectedAud, $actualAudience, true)) {
+                    if (in_array((string) $expectedAud, $actualAudience, true)) {
                         $match = true;
                         break;
                     }
