@@ -37,9 +37,8 @@ class Blacklist implements BlacklistInterface
 
         $ttl = $ttl ?? $this->gracePeriod;
 
-        // 存储令牌的过期时间作为标记值
-        $exp = $token->getExpirationTime();
-        $val = $exp ? $exp->getTimestamp() : time() + $ttl;
+        // 存储标记值（只需知道它在黑名单中即可）
+        $val = true;
 
         return $this->cache->set($this->getCacheKey($jti), $val, $ttl);
     }
@@ -70,12 +69,18 @@ class Blacklist implements BlacklistInterface
 
     /**
      * {@inheritdoc}
+     *
      * 由于 PSR-16 的限制，clear 会清除整个缓存实例而不仅仅是此前缀的条目。
-     * 为安全起见，默认返回 false。
+     * 为安全起见，抛出明确异常而非静默失败。
+     *
+     * @throws JwtException 始终抛出异常，说明该操作不受支持
      */
     public function clear(): bool
     {
-        return false;
+        throw new JwtException(
+            'Clearing all blacklist entries is not supported. ' .
+            'Individual entries will expire based on their TTL.'
+        );
     }
 
     /**
@@ -96,10 +101,11 @@ class Blacklist implements BlacklistInterface
     }
 
     /**
-     * 生成混淆后的缓存键
+     * 生成混淆后的缓存键。
+     * 使用 SHA256 哈希以防止特殊字符干扰并增强安全性。
      */
     protected function getCacheKey(string $jti): string
     {
-        return $this->cachePrefix . $jti;
+        return $this->cachePrefix . hash('sha256', $jti);
     }
 }

@@ -17,26 +17,23 @@ use Kylesean\Jwt\Exception\TokenExpiredException;
 use Kylesean\Jwt\Exception\TokenNotYetValidException;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\HttpServer\Contract\RequestInterface as HyperfRequestInterface;
-use Lcobucci\Clock\SystemClock;
 use Lcobucci\JWT\Configuration as LcobucciConfiguration;
-use Lcobucci\JWT\Encoding\CannotDecodeContent;
 use Lcobucci\JWT\Signer;
-use Lcobucci\JWT\Token\InvalidTokenStructure;
 use Lcobucci\JWT\UnencryptedToken;
+use Lcobucci\JWT\Validation\Constraint\IssuedBy;
+use Lcobucci\JWT\Validation\Constraint\LooseValidAt;
+use Lcobucci\JWT\Validation\Constraint\PermittedFor;
 use Lcobucci\JWT\Validation\Constraint\SignedWith;
-use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
 use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
+use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Kylesean\Jwt\Contract\PayloadFactoryInterface;
 
 class Manager implements ManagerInterface
 {
     protected Signer $signer;
-    protected int $ttl;
-    protected int $refreshTtl;
-    protected string $issuer;
-    protected string|array $audience;
     protected string $subjectClaimName = 'sub';
+    protected ClockInterface $clock;
 
     public function __construct(
         protected \Hyperf\Contract\ContainerInterface $container,
@@ -46,18 +43,26 @@ class Manager implements ManagerInterface
         protected BlacklistInterface $blacklist,
         protected RequestParserFactoryInterface $requestParserFactory,
         protected PayloadFactoryInterface $payloadFactory,
+        ?ClockInterface $clock = null,
     ) {
         $this->signer = $this->lcobucciConfig->signer();
+        $this->clock = $clock ?? new class implements ClockInterface {
+            public function now(): DateTimeImmutable
+            {
+                return new DateTimeImmutable();
+            }
+        };
         $this->loadConfig();
         $this->configureValidator();
     }
 
+    /**
+     * Load configuration that is specific to Manager (not delegated to PayloadFactory).
+     */
     protected function loadConfig(): void
     {
-        $this->ttl = (int) $this->hyperfConfig->get('jwt.ttl', 60);
-        $this->refreshTtl = (int) $this->hyperfConfig->get('jwt.refresh_ttl', 20160);
-        $this->issuer = (string) $this->hyperfConfig->get('jwt.issuer', 'Hyperf App');
-        $this->audience = $this->hyperfConfig->get('jwt.audience', 'Hyperf App');
+        // Most config is now delegated to PayloadFactory to avoid duplication
+        // Only Manager-specific config is loaded here
         $this->subjectClaimName = (string) $this->hyperfConfig->get('jwt.subject_claim', 'sub');
     }
 
@@ -157,75 +162,81 @@ class Manager implements ManagerInterface
 
         $ourToken = $this->container->make(Token::class, ['lcobucciToken' => $lcobucciToken]);
 
-        // 2. 显式的时间校验 (取代脆弱的字符串匹配)
-        $this->performManualTimeValidation($ourToken);
-
-        // 3. 校验其他约束 (iss, aud 等)
-        $otherConstraints = $this->getVerificationConstraints();
-        if (!empty($otherConstraints)) {
+        // 2. 使用 Lcobucci 原生约束进行统一验证
+        $constraints = $this->buildValidationConstraints();
+        if (!empty($constraints)) {
             try {
-                $this->lcobucciConfig->validator()->assert($lcobucciToken, ...$otherConstraints);
+                $this->lcobucciConfig->validator()->assert($lcobucciToken, ...$constraints);
             } catch (RequiredConstraintsViolated $e) {
                 $this->handleValidationFailure($e);
             }
         }
 
+        // 3. 黑名单检查
         if ($this->hyperfConfig->get('jwt.blacklist_enabled', true) && $this->blacklist->has($ourToken)) {
             throw new TokenInvalidException('Token has been blacklisted.');
         }
 
-        $this->validator->validate($ourToken, true, []);
+        // 4. 解析各种预期声明以供验证
+        $expectedClaims = [];
+        if ($this->hyperfConfig->get('jwt.required_claims.iss', false)) {
+            $expectedClaims['iss'] = $this->payloadFactory->getIssuer();
+        }
+        if ($this->hyperfConfig->get('jwt.required_claims.aud', false)) {
+            $expectedClaims['aud'] = $this->payloadFactory->getAudience();
+        }
+
+        // 5. 自定义及必需声明验证（含 Issuer / Audience 的 OR 逻辑支持）
+        $this->validator->checkClaims($ourToken, $expectedClaims, $this->validator->getRequiredClaims());
 
         return $ourToken;
     }
 
     /**
-     * 执行显式的时间校验，避免解析错误消息字符串。
+     * 构建 Lcobucci 验证约束链。
+     * 使用 LooseValidAt 进行时间验证（允许缺少部分时间声明）。
+     *
+     * @return array<\Lcobucci\JWT\Validation\Constraint>
      */
-    protected function performManualTimeValidation(TokenInterface $token): void
-    {
-        $now = $this->payloadFactory->getCurrentTime();
-        $leeway = $this->validator->getLeeway();
-
-        // 验证过期时间 (exp)
-        $exp = $token->getExpirationTime();
-        if ($exp && ($exp->getTimestamp() + $leeway) < $now->getTimestamp()) {
-            throw new TokenExpiredException('The token is expired.');
-        }
-
-        // 验证生效时间 (nbf)
-        $nbf = $token->getNotBefore();
-        if ($nbf && ($nbf->getTimestamp() - $leeway) > $now->getTimestamp()) {
-            throw new TokenNotYetValidException('The token is not yet valid.');
-        }
-
-        // 验证签发时间 (iat) - 确保不晚于当前时间太久
-        $iat = $token->getIssuedAt();
-        if ($iat && ($iat->getTimestamp() - $leeway) > $now->getTimestamp()) {
-            throw new TokenInvalidException('The token was issued in the future.');
-        }
-    }
-
-    protected function getVerificationConstraints(): array
+    protected function buildValidationConstraints(): array
     {
         $constraints = [];
 
-        if ($this->hyperfConfig->get('jwt.required_claims.iss', false) && $this->issuer) {
-            $constraints[] = new \Lcobucci\JWT\Validation\Constraint\IssuedBy($this->issuer);
-        }
-
-        $audiences = is_array($this->audience) ? $this->audience : [$this->audience];
-        if ($this->hyperfConfig->get('jwt.required_claims.aud', false) && !empty($audiences) && count($audiences) === 1) {
-            $constraints[] = new \Lcobucci\JWT\Validation\Constraint\PermittedFor($audiences[0]);
-        }
+        // 时间验证：使用 LooseValidAt（允许缺少部分时间声明）
+        $leeway = $this->validator->getLeeway();
+        $leewayInterval = $leeway > 0
+            ? DateInterval::createFromDateString($leeway . ' seconds')
+            : new DateInterval('PT0S');
+        $constraints[] = new LooseValidAt($this->clock, $leewayInterval);
 
         return $constraints;
     }
 
+    /**
+     * 处理 Lcobucci 验证失败，转换为业务语义异常。
+     *
+     * @throws TokenExpiredException
+     * @throws TokenNotYetValidException
+     * @throws TokenInvalidException
+     */
     protected function handleValidationFailure(RequiredConstraintsViolated $e): void
     {
-        // 现在这里只处理非时间类的辅助校验失败（如 iss, aud 等）
         $firstMessage = $e->violations()[0]?->getMessage() ?? 'Token validation failed.';
+        $lowerMessage = strtolower($firstMessage);
+
+        // 根据错误消息判断异常类型
+        if (str_contains($lowerMessage, 'expired') || str_contains($lowerMessage, 'exp')) {
+            throw new TokenExpiredException('The token is expired.', (int) $e->getCode(), $e);
+        }
+
+        if (str_contains($lowerMessage, 'not yet valid') || str_contains($lowerMessage, 'nbf') || str_contains($lowerMessage, 'not before')) {
+            throw new TokenNotYetValidException('The token is not yet valid.', (int) $e->getCode(), $e);
+        }
+
+        if (str_contains($lowerMessage, 'issued') || str_contains($lowerMessage, 'iat')) {
+            throw new TokenInvalidException('The token was issued in the future.', (int) $e->getCode(), $e);
+        }
+
         throw new TokenInvalidException($firstMessage, (int) $e->getCode(), $e);
     }
 
@@ -286,7 +297,8 @@ class Manager implements ManagerInterface
         }
 
         $now = new DateTimeImmutable();
-        $refreshWindowEnd = $exp->add(new DateInterval("PT{$this->refreshTtl}M"));
+        $refreshTtl = $this->payloadFactory->getRefreshTtl();
+        $refreshWindowEnd = $exp->add(new DateInterval("PT{$refreshTtl}M"));
 
         if ($now > $refreshWindowEnd) {
             throw new TokenExpiredException('Token has expired and is outside the refresh window.');
@@ -319,7 +331,7 @@ class Manager implements ManagerInterface
         }
 
         try {
-            $ttl = $forceForever ? ($this->refreshTtl * 60 * 24 * 365) : null;
+            $ttl = $forceForever ? ($this->payloadFactory->getRefreshTtl() * 60 * 24 * 365) : null;
             if (!$this->blacklist->add($token, $ttl)) {
                 if (empty($token->getId())) {
                     throw new JwtException('Token does not have a jti claim and cannot be reliably blacklisted.');
@@ -389,28 +401,21 @@ class Manager implements ManagerInterface
 
     public function setTtl(int $ttl): self
     {
-        $this->ttl = $ttl > 0 ? $ttl : 1;
+        $this->payloadFactory->setTtl($ttl);
         return $this;
     }
 
     public function getTtl(): int
     {
-        return $this->ttl;
+        return $this->payloadFactory->getTtl();
     }
 
     public function getRefreshTtl(): int
     {
-        return $this->refreshTtl;
+        return $this->payloadFactory->getRefreshTtl();
     }
 
-    protected function generateJti(): string
-    {
-        try {
-            return bin2hex(random_bytes(16));
-        } catch (\Exception $e) {
-            return uniqid('', true) . sha1((string) microtime(true));
-        }
-    }
+
 
     public function getSubjectClaimKey(): string
     {

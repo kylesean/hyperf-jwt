@@ -22,7 +22,7 @@ class GenJwtKeyCommand extends HyperfCommand
         $this->setDescription('Generate a new JWT secret key (for HMAC) or key pair (for RSA/ECDSA).');
     }
 
-    public function handle()
+    public function handle(): int
     {
         $algoOption = $this->input->getOption('algo');
         $algo = is_string($algoOption) ? strtolower($algoOption) : 'hs256';
@@ -54,10 +54,17 @@ class GenJwtKeyCommand extends HyperfCommand
             $key = random_bytes($length);
             $secret = bin2hex($key);
         } catch (\Exception $e) {
-            $this->output->error('Could not generate a cryptographically secure random key: ' . $e->getMessage());
-            // ... (降级逻辑) ...
-            $secret = sha1(uniqid((string) microtime(true) . random_int(0, mt_getrandmax()), true));
-            $secret = substr($secret . sha1($secret), 0, $length * 2);
+            $this->output->error('CRITICAL: Could not generate a cryptographically secure random key.');
+            $this->output->writeln('');
+            $this->output->writeln('<comment>This is a security-critical failure. Do NOT use a weak fallback.</comment>');
+            $this->output->writeln('');
+            $this->output->writeln('Possible solutions:');
+            $this->output->writeln('  1. Ensure your PHP installation has a proper random source configured.');
+            $this->output->writeln('  2. On Linux, ensure /dev/urandom is available and readable.');
+            $this->output->writeln('  3. Try running: php -r "echo bin2hex(random_bytes(32));" to test your system.');
+            $this->output->writeln('');
+            $this->output->writeln('Error details: ' . $e->getMessage());
+            return; // Abort key generation instead of using insecure fallback
         }
 
         $this->output->success(sprintf('Successfully generated new JWT secret for %s.', strtoupper($algo)));
@@ -252,10 +259,40 @@ class GenJwtKeyCommand extends HyperfCommand
         }
     }
 
-    // updateEnvFile 保持不变
+    /**
+     * 尝试更新 .env 文件中的指定键值。
+     */
     protected function updateEnvFile(string $keyName, string $keyValue): void
     {
-        // ... (代码同前) ...
+        $envPath = (defined('BASE_PATH') ? BASE_PATH : getcwd()) . '/.env';
+
+        if (!file_exists($envPath)) {
+            $this->output->warning(".env file not found at: {$envPath}");
+            return;
+        }
+
+        $content = file_get_contents($envPath);
+        if ($content === false) {
+            $this->output->warning("Failed to read .env file: {$envPath}");
+            return;
+        }
+
+        $pattern = "/^" . preg_quote($keyName, '/') . "=.*/m";
+
+        if (preg_match($pattern, $content)) {
+            $content = preg_replace($pattern, "{$keyName}={$keyValue}", $content);
+            $this->output->info("Updated existing {$keyName} in .env");
+        } else {
+            $content .= "\n{$keyName}={$keyValue}\n";
+            $this->output->info("Added {$keyName} to .env");
+        }
+
+        if (file_put_contents($envPath, $content) === false) {
+            $this->output->warning("Failed to write to .env file: {$envPath}");
+            return;
+        }
+
+        $this->output->success(".env file updated successfully.");
     }
 
     protected function configure(): void

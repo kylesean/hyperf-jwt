@@ -35,7 +35,7 @@ class RequestParserFactoryTest extends TestCase
     }
 
     // 辅助方法：创建一个 RequestParserFactory 实例
-    protected function createFactory(array $tokenParsersConfigFromTest = null): RequestParserFactory
+    protected function createFactory(?array $tokenParsersConfigFromTest = null): RequestParserFactory
     {
         // 如果 $tokenParsersConfigFromTest 为 null，表示我们想测试 Factory 使用其内部默认值的情况。
         // 此时，我们模拟 ConfigInterface::get('jwt.token_parsers', $defaultValue) 的行为是：
@@ -239,7 +239,7 @@ class RequestParserFactoryTest extends TestCase
 
         // 修改配置
         $this->mockConfig->shouldReceive('get') // 确保 config mock 被更新的调用捕获
-        ->with('jwt.token_parsers', Mockery::any())
+            ->with('jwt.token_parsers', Mockery::any())
             ->andReturn([AuthorizationHeader::class]); // 新的配置
 
         // 模拟容器对新配置的 make 调用

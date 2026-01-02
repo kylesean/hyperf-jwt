@@ -126,7 +126,7 @@ class RequestParserFactory implements RequestParserFactoryInterface
 
             // Case 2: 元组风格 [ClassName::class, $optionsArray] 或 [ClassName::class]
             // 检查数组第一个元素是否为字符串（类名）
-            if (is_string($parserConfig[0])) {
+            if (isset($parserConfig[0]) && is_string($parserConfig[0])) {
                 $className = $parserConfig[0];
                 // 如果有第二个元素且是数组，则将其作为选项
                 $options = (isset($parserConfig[1]) && is_array($parserConfig[1])) ? $parserConfig[1] : [];

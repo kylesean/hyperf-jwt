@@ -22,6 +22,12 @@ interface PayloadFactoryInterface
     public function getTtl(): int;
 
     /**
+     * 获取令牌刷新窗口期（分钟）。
+     * 过期令牌在此窗口期内仍可刷新。
+     */
+    public function getRefreshTtl(): int;
+
+    /**
      * 设置令牌的 'nbf' (Not Before) 相对于 'iat' (Issued At) 的偏移量（秒）。
      *
      * @return $this

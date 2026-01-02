@@ -35,7 +35,7 @@ class LcobucciFactory
             throw new JwtException("Invalid JWT algorithm class: {$algoClass}");
         }
 
-        $signer = is_string($algoClass) ? $container->get($algoClass) : $algoClass;
+        $signer = $container->get($algoClass);
 
         if ($signer instanceof Signer\Hmac) {
             return $this->createSymmetricConfiguration($signer, $config);

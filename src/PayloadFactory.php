@@ -7,29 +7,45 @@ namespace Kylesean\Jwt;
 use DateTimeImmutable;
 use DateInterval;
 use Kylesean\Jwt\Contract\PayloadFactoryInterface;
-use Hyperf\Contract\ConfigInterface; // 用于获取配置
+use Hyperf\Contract\ConfigInterface;
+use Psr\Clock\ClockInterface;
 
 class PayloadFactory implements PayloadFactoryInterface
 {
-    protected ConfigInterface $config;
-    protected int $ttl; // 分钟
-    protected int $nbfOffsetSeconds; // 秒
-    protected string $issuer;
-    protected string|array $audience;
-
+    /**
+     * Default token time-to-live in minutes.
+     */
+    public const DEFAULT_TTL_MINUTES = 60;
 
     /**
-     * 需要刷新的声明列表。
-     * 当刷新令牌时，这些声明会被 PayloadFactory 重新生成，而不是从旧令牌复制。
-     * @var string[]
+     * Default refresh window time-to-live in minutes (approximately 2 weeks).
+     * 20160 minutes = 14 days = 2 weeks
      */
-    protected array $claimsToRefresh = ['iat', 'exp', 'nbf', 'jti'];
+    public const DEFAULT_REFRESH_TTL_MINUTES = 20160;
 
-    public function __construct(ConfigInterface $config)
+    /**
+     * Default claims that should be regenerated on token refresh.
+     */
+    public const DEFAULT_CLAIMS_TO_REFRESH = ['iat', 'exp', 'nbf', 'jti'];
+
+    protected ConfigInterface $config;
+    protected ?ClockInterface $clock;
+    protected int $ttl;
+    protected int $refreshTtl;
+    protected int $nbfOffsetSeconds;
+    protected string $issuer;
+    /** @var string|string[] */
+    protected string|array $audience;
+
+    /** @var string[] Claims to regenerate on token refresh */
+    protected array $claimsToRefresh = self::DEFAULT_CLAIMS_TO_REFRESH;
+
+    public function __construct(ConfigInterface $config, ?ClockInterface $clock = null)
     {
         $this->config = $config;
-        // 在构造函数中直接初始化这些属性
-        $this->setTtl((int) $this->config->get('jwt.ttl', 60));
+        $this->clock = $clock;
+        $this->setTtl((int) $this->config->get('jwt.ttl', self::DEFAULT_TTL_MINUTES));
+        $this->setRefreshTtl((int) $this->config->get('jwt.refresh_ttl', self::DEFAULT_REFRESH_TTL_MINUTES));
         $this->setNbfOffsetSeconds((int) $this->config->get('jwt.nbf_offset_seconds', 0));
         $this->setIssuer((string) $this->config->get('jwt.issuer', 'Hyperf App'));
         $this->setAudience($this->config->get('jwt.audience', 'Hyperf App'));
@@ -44,6 +60,17 @@ class PayloadFactory implements PayloadFactoryInterface
     public function getTtl(): int
     {
         return $this->ttl;
+    }
+
+    public function setRefreshTtl(int $refreshTtl): self
+    {
+        $this->refreshTtl = $refreshTtl > 0 ? $refreshTtl : 1;
+        return $this;
+    }
+
+    public function getRefreshTtl(): int
+    {
+        return $this->refreshTtl;
     }
 
     public function setNbfOffsetSeconds(int $seconds): self
@@ -81,12 +108,15 @@ class PayloadFactory implements PayloadFactoryInterface
 
     public function getCurrentTime(): DateTimeImmutable
     {
-        return new DateTimeImmutable();
+        return $this->clock?->now() ?? new DateTimeImmutable();
     }
 
-    /**
-     * 获取在刷新令牌时需要重新生成的声明列表。
-     */
+    public function setClock(?ClockInterface $clock): self
+    {
+        $this->clock = $clock;
+        return $this;
+    }
+
     public function getClaimsToRefresh(): array
     {
         $userClaimsToRefresh = $this->config->get('jwt.claims_to_refresh', []);
@@ -94,14 +124,24 @@ class PayloadFactory implements PayloadFactoryInterface
     }
 
     /**
-     * 生成唯一的 JWT ID (jti)。
+     * Generate a cryptographically secure unique JTI (JWT ID).
+     *
+     * @throws \RuntimeException If a secure random source is not available
      */
     public function generateJti(): string
     {
         try {
             return bin2hex(random_bytes(16));
         } catch (\Exception $e) {
-            return uniqid('', true) . sha1(microtime(true));
+            // JTI is security-critical and must be cryptographically secure.
+            // Do NOT use weak fallbacks like uniqid() or microtime().
+            throw new \RuntimeException(
+                'Failed to generate a cryptographically secure JTI. ' .
+                'Ensure your PHP installation has access to a secure random source. ' .
+                'Original error: ' . $e->getMessage(),
+                0,
+                $e
+            );
         }
     }
 }

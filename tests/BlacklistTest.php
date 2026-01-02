@@ -60,8 +60,18 @@ class BlacklistTest extends TestCase
         $token = Mockery::mock(TokenInterface::class);
         $token->shouldReceive('getId')->andReturn($jti)->byDefault();
         $token->shouldReceive('getExpirationTime')->andReturn($exp)->byDefault();
-        $token->shouldReceive('getAllClaims')->andReturn(['jti' => $jti, 'exp' => $exp ? $exp->getTimestamp() : null])->byDefault();
+        $token->shouldReceive('getAllClaims')
+            ->andReturnUsing(fn() => ['jti' => $jti, 'exp' => $exp?->getTimestamp()])
+            ->byDefault();
         return $token;
+    }
+
+    /**
+     * 辅助方法：生成与 Blacklist 实现一致的缓存键。
+     */
+    protected function getExpectedCacheKey(string $jti): string
+    {
+        return $this->defaultCachePrefix . hash('sha256', $jti);
     }
 
     public function testAddTokenToBlacklist(): void
@@ -69,12 +79,12 @@ class BlacklistTest extends TestCase
         $jti = 'test_jti_123';
         $exp = new DateTimeImmutable('+1 hour');
         $token = $this->createMockToken($jti, $exp);
-        $expectedCacheKey = $this->defaultCachePrefix . $jti;
+        $expectedCacheKey = $this->getExpectedCacheKey($jti);
         $expectedValue = $exp->getTimestamp();
 
         $this->mockCache->shouldReceive('set')
             ->once()
-            ->with($expectedCacheKey, $expectedValue, $this->defaultGracePeriod)
+            ->with($expectedCacheKey, true, $this->defaultGracePeriod)
             ->andReturn(true);
 
         $this->assertTrue($this->blacklist->add($token));
@@ -85,11 +95,11 @@ class BlacklistTest extends TestCase
         $jti = 'test_jti_custom_ttl';
         $token = $this->createMockToken($jti, new DateTimeImmutable('+2 hours'));
         $customTtl = 1800; // 30 minutes
-        $expectedCacheKey = $this->defaultCachePrefix . $jti;
+        $expectedCacheKey = $this->getExpectedCacheKey($jti);
 
         $this->mockCache->shouldReceive('set')
             ->once()
-            ->with($expectedCacheKey, Mockery::type('int'), $customTtl) // 值可以是任何 int
+            ->with($expectedCacheKey, true, $customTtl)
             ->andReturn(true);
 
         $this->assertTrue($this->blacklist->add($token, $customTtl));
@@ -106,14 +116,14 @@ class BlacklistTest extends TestCase
     {
         $jti = 'test_jti_no_exp';
         $token = $this->createMockToken($jti, null); // No expiration time
-        $expectedCacheKey = $this->defaultCachePrefix . $jti;
+        $expectedCacheKey = $this->getExpectedCacheKey($jti);
         // valueToStore will be time() + defaultGracePeriod
         // We can use a more flexible matcher for the value if exact time() is hard to predict
         // Mockery::on(function($value) { return is_int($value) && $value > time(); })
 
         $this->mockCache->shouldReceive('set')
             ->once()
-            ->with($expectedCacheKey, Mockery::type('int'), $this->defaultGracePeriod)
+            ->with($expectedCacheKey, true, $this->defaultGracePeriod)
             ->andReturn(true);
 
         $this->assertTrue($this->blacklist->add($token));
@@ -123,7 +133,7 @@ class BlacklistTest extends TestCase
     {
         $jti = 'existing_jti';
         $token = $this->createMockToken($jti);
-        $expectedCacheKey = $this->defaultCachePrefix . $jti;
+        $expectedCacheKey = $this->getExpectedCacheKey($jti);
 
         $this->mockCache->shouldReceive('has')->once()->with($expectedCacheKey)->andReturn(true);
         $this->assertTrue($this->blacklist->has($token));
@@ -143,7 +153,7 @@ class BlacklistTest extends TestCase
     {
         $jti = 'jti_to_remove';
         $token = $this->createMockToken($jti);
-        $expectedCacheKey = $this->defaultCachePrefix . $jti;
+        $expectedCacheKey = $this->getExpectedCacheKey($jti);
 
         $this->mockCache->shouldReceive('delete')->once()->with($expectedCacheKey)->andReturn(true);
         $this->assertTrue($this->blacklist->remove($token));
@@ -156,12 +166,13 @@ class BlacklistTest extends TestCase
         $this->assertFalse($this->blacklist->remove($token));
     }
 
-    public function testClearMethodReturnsFalseAsNotSafelyImplemented(): void
+    public function testClearMethodThrowsException(): void
     {
-        // 当前 Blacklist::clear() 设计为返回 false，因为 PSR-16 不支持按前缀清除
-        // 我们不期望 $this->mockCache->clear() 被调用，除非特定配置允许
+        // Blacklist::clear() 现在抛出异常，因为 PSR-16 不支持按前缀清除
         $this->mockCache->shouldNotReceive('clear');
-        $this->assertFalse($this->blacklist->clear());
+        $this->expectException(\Kylesean\Jwt\Exception\JwtException::class);
+        $this->expectExceptionMessage('Clearing all blacklist entries is not supported.');
+        $this->blacklist->clear();
     }
 
     public function testSetAndGetDefaultGracePeriod(): void
@@ -169,10 +180,9 @@ class BlacklistTest extends TestCase
         $this->blacklist->setDefaultGracePeriod(7200);
         $this->assertEquals(7200, $this->blacklist->getDefaultGracePeriod());
 
-        $this->blacklist->setDefaultGracePeriod(0); // 0 is allowed, meaning effectively no grace or immediate expiry on add
+        $this->blacklist->setDefaultGracePeriod(0);
         $this->assertEquals(0, $this->blacklist->getDefaultGracePeriod());
 
-        // Test negative value defaults to 0 (or positive, depending on implementation, current is > 0 ? $ttl : 0)
         $this->blacklist->setDefaultGracePeriod(-100);
         $this->assertEquals(0, $this->blacklist->getDefaultGracePeriod());
     }
@@ -189,7 +199,7 @@ class BlacklistTest extends TestCase
 
         $jti = 'test_jti_custom_prefix';
         $token = $this->createMockToken($jti, new DateTimeImmutable('+1 hour'));
-        $expectedCacheKey = $customPrefix . $jti;
+        $expectedCacheKey = $customPrefix . hash('sha256', $jti);
 
         $this->mockCache->shouldReceive('set')
             ->once()

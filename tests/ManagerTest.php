@@ -112,22 +112,24 @@ class ManagerTest extends TestCase
 
 
         // --- 配置 PayloadFactory ---
-        // (这部分保持不变)
-        $this->mockPayloadFactory->shouldReceive('setTtl')->withAnyArgs()->andReturnSelf()->byDefault();
-        // ... (其他 payloadFactory mock) ...
         $this->mockPayloadFactory->shouldReceive('getIssuer')->andReturn('test-issuer')->byDefault();
         $this->mockPayloadFactory->shouldReceive('getAudience')->andReturn('test-audience')->byDefault();
         $this->mockPayloadFactory->shouldReceive('generateJti')->andReturn('mocked_jti_123')->byDefault();
         $this->mockPayloadFactory->shouldReceive('getCurrentTime')->andReturn(new DateTimeImmutable())->byDefault();
         $this->mockPayloadFactory->shouldReceive('getNbfOffsetSeconds')->andReturn(0)->byDefault();
         $this->mockPayloadFactory->shouldReceive('getTtl')->andReturn(60)->byDefault();
+        $this->mockPayloadFactory->shouldReceive('getRefreshTtl')->andReturn(20160)->byDefault();
+        $this->mockPayloadFactory->shouldReceive('getClaimsToRefresh')->andReturn(['iat', 'exp', 'nbf', 'jti'])->byDefault();
+        $this->mockPayloadFactory->shouldReceive('setTtl')->withAnyArgs()->andReturnSelf()->byDefault();
+        $this->mockPayloadFactory->shouldReceive('setRefreshTtl')->withAnyArgs()->andReturnSelf()->byDefault();
 
 
         // --- 配置我们自己的 Validator ---
         $this->mockOurValidator->shouldReceive('setRequiredClaims')->withAnyArgs()->andReturnSelf()->byDefault();
         $this->mockOurValidator->shouldReceive('setLeeway')->withAnyArgs()->andReturnSelf()->byDefault();
-        $this->mockOurValidator->shouldReceive('validate')->withAnyArgs()->andReturnUndefined()->byDefault();
+        $this->mockOurValidator->shouldReceive('checkClaims')->withAnyArgs()->andReturnUndefined()->byDefault();
         $this->mockOurValidator->shouldReceive('getLeeway')->andReturn(0)->byDefault();
+        $this->mockOurValidator->shouldReceive('getRequiredClaims')->andReturn([])->byDefault();
 
 
         // --- 配置 ContainerInterface ---
@@ -205,8 +207,8 @@ class ManagerTest extends TestCase
         // Mock Blacklist::has() 返回 false (不在黑名单)
         $this->mockBlacklist->shouldReceive('has')->once()->with(Mockery::type(TokenInterface::class))->andReturn(false);
 
-        // Mock Validator::validate() 不抛异常
-        $this->mockOurValidator->shouldReceive('validate')->once()->with(Mockery::type(TokenInterface::class), true, [])->andReturnUndefined();
+        // Mock Validator::checkClaims() 不抛异常
+        $this->mockOurValidator->shouldReceive('checkClaims')->once()->with(Mockery::type(TokenInterface::class), [], [])->andReturnUndefined();
 
         $parsedToken = $this->manager->parse($testTokenString);
 
@@ -274,7 +276,7 @@ class ManagerTest extends TestCase
         $mockParser->shouldReceive('parse')->with($mockRequest)->once()->andReturn($testTokenString);
 
         $this->mockBlacklist->shouldReceive('has')->once()->andReturn(false);
-        $this->mockOurValidator->shouldReceive('validate')->once()->andReturnUndefined();
+        $this->mockOurValidator->shouldReceive('checkClaims')->once()->andReturnUndefined();
 
         $token = $this->manager->parseTokenFromRequest($mockRequest);
         $this->assertInstanceOf(TokenInterface::class, $token);
@@ -317,7 +319,7 @@ class ManagerTest extends TestCase
         $this->mockBlacklist->shouldReceive('add')->once()
             ->with(Mockery::on(function (TokenInterface $token) use ($oldTokenJti) {
                 return $token->getId() === $oldTokenJti;
-            }), Mockery::type('int')) // 第二个参数是 TTL
+            }), Mockery::type('int')) // 刷新时会计算剩余的 refresh window 作为 TTL
             ->andReturn(true); // 旧 token 成功加入黑名单
 
         // PayloadFactory 行为 (用于生成新 token)
