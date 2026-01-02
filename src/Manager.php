@@ -24,6 +24,8 @@ use Lcobucci\JWT\Validation\Constraint\IssuedBy;
 use Lcobucci\JWT\Validation\Constraint\LooseValidAt;
 use Lcobucci\JWT\Validation\Constraint\PermittedFor;
 use Lcobucci\JWT\Validation\Constraint\SignedWith;
+use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
+use Lcobucci\JWT\Validation\ConstraintViolation;
 use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
 use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -123,6 +125,9 @@ class Manager implements ManagerInterface
         }
     }
 
+    /**
+     * @param array<string, mixed> $customClaims
+     */
     protected function getSubjectValue(array $customClaims, mixed $subject): mixed
     {
         if (array_key_exists($this->subjectClaimName, $customClaims)) {
@@ -221,23 +226,33 @@ class Manager implements ManagerInterface
      */
     protected function handleValidationFailure(RequiredConstraintsViolated $e): void
     {
-        $firstMessage = $e->violations()[0]?->getMessage() ?? 'Token validation failed.';
-        $lowerMessage = strtolower($firstMessage);
+        $violations = $e->violations();
+        $firstViolation = $violations[0] ?? null;
 
-        // 根据错误消息判断异常类型
-        if (str_contains($lowerMessage, 'expired') || str_contains($lowerMessage, 'exp')) {
-            throw new TokenExpiredException('The token is expired.', (int) $e->getCode(), $e);
+        if ($firstViolation instanceof ConstraintViolation) {
+            $constraintClass = $firstViolation->constraint;
+
+            // 根据具体的约束类名判断异常类型
+            if ($constraintClass === LooseValidAt::class || $constraintClass === StrictValidAt::class) {
+                $message = $firstViolation->getMessage();
+                $lowerMessage = strtolower($message);
+
+                if (str_contains($lowerMessage, 'expired')) {
+                    throw new TokenExpiredException('The token is expired.', (int) $e->getCode(), $e);
+                }
+
+                if (str_contains($lowerMessage, 'cannot be used yet') || str_contains($lowerMessage, 'not yet valid') || str_contains($lowerMessage, 'not before')) {
+                    throw new TokenNotYetValidException('The token is not yet valid.', (int) $e->getCode(), $e);
+                }
+
+                if (str_contains($lowerMessage, 'issued in the future')) {
+                    throw new TokenInvalidException('The token was issued in the future.', (int) $e->getCode(), $e);
+                }
+            }
         }
 
-        if (str_contains($lowerMessage, 'not yet valid') || str_contains($lowerMessage, 'nbf') || str_contains($lowerMessage, 'not before')) {
-            throw new TokenNotYetValidException('The token is not yet valid.', (int) $e->getCode(), $e);
-        }
-
-        if (str_contains($lowerMessage, 'issued') || str_contains($lowerMessage, 'iat')) {
-            throw new TokenInvalidException('The token was issued in the future.', (int) $e->getCode(), $e);
-        }
-
-        throw new TokenInvalidException($firstMessage, (int) $e->getCode(), $e);
+        $message = $firstViolation?->getMessage() ?? 'Token validation failed.';
+        throw new TokenInvalidException($message, (int) $e->getCode(), $e);
     }
 
     public function parseTokenFromRequest(?ServerRequestInterface $request = null): ?TokenInterface

@@ -46,14 +46,12 @@ use Lcobucci\JWT\Validation\Constraint;
 use Lcobucci\JWT\Validation\Validator as LcobucciValidator;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use Hyperf\Contract\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
-/**
- * @internal
- * @coversNothing
- */
+#[CoversNothing]
 class ManagerTest extends TestCase
 {
     use MockeryPHPUnitIntegration;
@@ -119,6 +117,7 @@ class ManagerTest extends TestCase
         $this->mockPayloadFactory->shouldReceive('getNbfOffsetSeconds')->andReturn(0)->byDefault();
         $this->mockPayloadFactory->shouldReceive('getTtl')->andReturn(60)->byDefault();
         $this->mockPayloadFactory->shouldReceive('getRefreshTtl')->andReturn(20160)->byDefault();
+        /** @phpstan-ignore argument.type */
         $this->mockPayloadFactory->shouldReceive('getClaimsToRefresh')->andReturn(['iat', 'exp', 'nbf', 'jti'])->byDefault();
         $this->mockPayloadFactory->shouldReceive('setTtl')->withAnyArgs()->andReturnSelf()->byDefault();
         $this->mockPayloadFactory->shouldReceive('setRefreshTtl')->withAnyArgs()->andReturnSelf()->byDefault();
@@ -272,6 +271,7 @@ class ManagerTest extends TestCase
             'jti' => 'from_req_jti'
         ], 'test_secret_key_for_hs256_at_least_32_bytes_long');
 
+        /** @phpstan-ignore argument.type */
         $this->mockRequestParserFactory->shouldReceive('getParserChain')->once()->andReturn([$mockParser]);
         $mockParser->shouldReceive('parse')->with($mockRequest)->once()->andReturn($testTokenString);
 
@@ -288,6 +288,7 @@ class ManagerTest extends TestCase
         $mockRequest = Mockery::mock(ServerRequestInterface::class);
         $mockParser = Mockery::mock(RequestParserInterface::class);
 
+        /** @phpstan-ignore argument.type */
         $this->mockRequestParserFactory->shouldReceive('getParserChain')->once()->andReturn([$mockParser]);
         $mockParser->shouldReceive('parse')->with($mockRequest)->once()->andReturn(null); // 解析器未找到token
 
@@ -323,6 +324,7 @@ class ManagerTest extends TestCase
             ->andReturn(true); // 旧 token 成功加入黑名单
 
         // PayloadFactory 行为 (用于生成新 token)
+        /** @phpstan-ignore argument.type */
         $this->mockPayloadFactory->shouldReceive('getClaimsToRefresh')->andReturn(['iat', 'exp', 'nbf', 'jti'])->byDefault();
         // issueToken 的其他 PayloadFactory 调用已在 setUp 中 mock
 

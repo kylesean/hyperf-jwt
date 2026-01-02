@@ -11,14 +11,12 @@ use Kylesean\Jwt\Contract\TokenInterface;
 use Hyperf\Contract\ConfigInterface;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\CacheInterface; // CacheInterface 是 Blacklist 依赖的核心
 use Psr\Log\LoggerInterface; // Blacklist 内部使用
 
-/**
- * @internal
- * @coversNothing
- */
+#[CoversNothing]
 class BlacklistTest extends TestCase
 {
     use MockeryPHPUnitIntegration;
@@ -82,6 +80,7 @@ class BlacklistTest extends TestCase
         $expectedCacheKey = $this->getExpectedCacheKey($jti);
         $expectedValue = $exp->getTimestamp();
 
+        $this->mockCache->shouldReceive('has')->once()->with($expectedCacheKey)->andReturn(false);
         $this->mockCache->shouldReceive('set')
             ->once()
             ->with($expectedCacheKey, true, $this->defaultGracePeriod)
@@ -97,6 +96,7 @@ class BlacklistTest extends TestCase
         $customTtl = 1800; // 30 minutes
         $expectedCacheKey = $this->getExpectedCacheKey($jti);
 
+        $this->mockCache->shouldReceive('has')->once()->with($expectedCacheKey)->andReturn(false);
         $this->mockCache->shouldReceive('set')
             ->once()
             ->with($expectedCacheKey, true, $customTtl)
@@ -121,6 +121,7 @@ class BlacklistTest extends TestCase
         // We can use a more flexible matcher for the value if exact time() is hard to predict
         // Mockery::on(function($value) { return is_int($value) && $value > time(); })
 
+        $this->mockCache->shouldReceive('has')->once()->with($expectedCacheKey)->andReturn(false);
         $this->mockCache->shouldReceive('set')
             ->once()
             ->with($expectedCacheKey, true, $this->defaultGracePeriod)
@@ -166,13 +167,11 @@ class BlacklistTest extends TestCase
         $this->assertFalse($this->blacklist->remove($token));
     }
 
-    public function testClearMethodThrowsException(): void
+    public function testClearMethodReturnsFalse(): void
     {
-        // Blacklist::clear() 现在抛出异常，因为 PSR-16 不支持按前缀清除
+        // Blacklist::clear() 现在返回 false，表示操作不受支持
         $this->mockCache->shouldNotReceive('clear');
-        $this->expectException(\Kylesean\Jwt\Exception\JwtException::class);
-        $this->expectExceptionMessage('Clearing all blacklist entries is not supported.');
-        $this->blacklist->clear();
+        $this->assertFalse($this->blacklist->clear());
     }
 
     public function testSetAndGetDefaultGracePeriod(): void
@@ -201,6 +200,7 @@ class BlacklistTest extends TestCase
         $token = $this->createMockToken($jti, new DateTimeImmutable('+1 hour'));
         $expectedCacheKey = $customPrefix . hash('sha256', $jti);
 
+        $this->mockCache->shouldReceive('has')->once()->with($expectedCacheKey)->andReturn(false);
         $this->mockCache->shouldReceive('set')
             ->once()
             ->with($expectedCacheKey, Mockery::any(), Mockery::any())

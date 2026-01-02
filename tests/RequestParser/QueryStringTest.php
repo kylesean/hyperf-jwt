@@ -7,13 +7,11 @@ namespace Kylesean\Jwt\Tests\RequestParser;
 use Kylesean\Jwt\RequestParser\QueryString;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 
-/**
- * @internal
- * @coversNothing
- */
+#[CoversNothing]
 class QueryStringTest extends TestCase
 {
     use MockeryPHPUnitIntegration;

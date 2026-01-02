@@ -35,12 +35,13 @@ class Blacklist implements BlacklistInterface
             return false;
         }
 
+        // 如果已经存在，说明已经被其他进程拉黑，不重复操作
+        if ($this->has($token)) {
+            return true;
+        }
+
         $ttl = $ttl ?? $this->gracePeriod;
-
-        // 存储标记值（只需知道它在黑名单中即可）
-        $val = true;
-
-        return $this->cache->set($this->getCacheKey($jti), $val, $ttl);
+        return $this->cache->set($this->getCacheKey($jti), true, $ttl);
     }
 
     /**
@@ -70,17 +71,13 @@ class Blacklist implements BlacklistInterface
     /**
      * {@inheritdoc}
      *
-     * 由于 PSR-16 的限制，clear 会清除整个缓存实例而不仅仅是此前缀的条目。
-     * 为安全起见，抛出明确异常而非静默失败。
-     *
-     * @throws JwtException 始终抛出异常，说明该操作不受支持
+     * PSR-16 要求 clear() 返回 bool。
+     * 由于黑名单基于前缀且通常共享缓存池，全量清理可能导致误删其他业务数据。
+     * 返回 false 表示该操作不受当前实现支持。
      */
     public function clear(): bool
     {
-        throw new JwtException(
-            'Clearing all blacklist entries is not supported. ' .
-            'Individual entries will expire based on their TTL.'
-        );
+        return false;
     }
 
     /**

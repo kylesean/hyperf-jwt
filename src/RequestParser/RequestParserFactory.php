@@ -20,7 +20,7 @@ class RequestParserFactory implements RequestParserFactoryInterface
 
     /**
      * 存储解析器的原始配置。
-     * @var array
+     * @var array<int, string|array<string, mixed>|RequestParserInterface>
      */
     protected array $parsersConfig = [];
 
@@ -33,7 +33,7 @@ class RequestParserFactory implements RequestParserFactoryInterface
     /**
      * 默认的解析器配置。
      * 如果用户没有在 jwt.php 中配置 token_parsers，则使用此配置。
-     * @var array
+     * @var array<int, class-string<RequestParserInterface>>
      */
     protected array $defaultParserConfigs = [
         AuthorizationHeader::class,
@@ -59,7 +59,7 @@ class RequestParserFactory implements RequestParserFactoryInterface
     /**
      * 设置要使用的解析器配置。
      *
-     * @param array $parsersConfig 解析器配置数组
+     * @param array<int, string|array<string, mixed>|RequestParserInterface> $parsersConfig 解析器配置数组
      * @return $this
      */
     public function setParsersConfig(array $parsersConfig): self
@@ -98,7 +98,7 @@ class RequestParserFactory implements RequestParserFactoryInterface
     /**
      * 根据给定的解析器类名或配置数组，创建一个解析器实例。
      *
-     * @param string|array|RequestParserInterface $parserConfig 解析器的类名，配置数组，或已实例化的对象。
+     * @param string|array<mixed>|RequestParserInterface $parserConfig 解析器的类名，配置数组，或已实例化的对象。
      *        配置数组格式可以是:
      *        - ClassName::class (字符串)
      *        - [ClassName::class] (单元素数组)

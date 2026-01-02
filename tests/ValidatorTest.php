@@ -12,19 +12,17 @@ use Kylesean\Jwt\Exception\TokenInvalidException;
 use Kylesean\Jwt\Exception\TokenNotYetValidException;
 use Kylesean\Jwt\Validator;
 use Mockery; // 我们将使用 Mockery 来创建 TokenInterface 的 mock 对象
-use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration; // Mockery 与 PHPUnit 集成
+use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @internal
- * @coversNothing
- */
+#[CoversNothing]
 class ValidatorTest extends TestCase
 {
-    use MockeryPHPUnitIntegration; // 使用此 trait 自动处理 Mockery::close()
+    use MockeryPHPUnitIntegration;
 
     protected Validator $validator;
-    protected TokenInterface $mockToken; // Mock 对象
+    protected TokenInterface|Mockery\MockInterface $mockToken;
 
     protected function setUp(): void
     {

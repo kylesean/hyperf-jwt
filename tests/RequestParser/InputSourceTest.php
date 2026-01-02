@@ -7,14 +7,12 @@ namespace Kylesean\Jwt\Tests\RequestParser;
 use Kylesean\Jwt\RequestParser\InputSource;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
-use stdClass; // 用于模拟对象类型的 parsedBody
+use stdClass;
 
-/**
- * @internal
- * @coversNothing
- */
+#[CoversNothing]
 class InputSourceTest extends TestCase
 {
     use MockeryPHPUnitIntegration;

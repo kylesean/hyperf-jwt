@@ -9,12 +9,10 @@ use Kylesean\Jwt\PayloadFactory;
 use Hyperf\Contract\ConfigInterface;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @internal
- * @coversNothing
- */
+#[CoversNothing]
 class PayloadFactoryTest extends TestCase
 {
     use MockeryPHPUnitIntegration;
@@ -84,6 +82,36 @@ class PayloadFactoryTest extends TestCase
 
         $factory->setTtl(-10); // 测试负数，应至少为1
         $this->assertEquals(1, $factory->getTtl());
+
+        // Test maximum TTL boundary (1 year)
+        $factory->setTtl(PayloadFactory::MAX_TTL_MINUTES);
+        $this->assertEquals(PayloadFactory::MAX_TTL_MINUTES, $factory->getTtl());
+
+        // Test TTL exceeds maximum, should be capped
+        $factory->setTtl(PayloadFactory::MAX_TTL_MINUTES + 1);
+        $this->assertEquals(PayloadFactory::MAX_TTL_MINUTES, $factory->getTtl());
+    }
+
+    public function testSetAndGetRefreshTtl(): void
+    {
+        $factory = $this->createPayloadFactory();
+
+        $factory->setRefreshTtl(30000);
+        $this->assertEquals(30000, $factory->getRefreshTtl());
+
+        $factory->setRefreshTtl(0); // 测试边界，应至少为1
+        $this->assertEquals(1, $factory->getRefreshTtl());
+
+        $factory->setRefreshTtl(-10); // 测试负数，应至少为1
+        $this->assertEquals(1, $factory->getRefreshTtl());
+
+        // Test maximum refresh TTL boundary (2 years)
+        $factory->setRefreshTtl(PayloadFactory::MAX_REFRESH_TTL_MINUTES);
+        $this->assertEquals(PayloadFactory::MAX_REFRESH_TTL_MINUTES, $factory->getRefreshTtl());
+
+        // Test refresh TTL exceeds maximum, should be capped
+        $factory->setRefreshTtl(PayloadFactory::MAX_REFRESH_TTL_MINUTES + 100);
+        $this->assertEquals(PayloadFactory::MAX_REFRESH_TTL_MINUTES, $factory->getRefreshTtl());
     }
 
     public function testSetAndGetNbfOffsetSeconds(): void

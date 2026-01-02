@@ -12,12 +12,10 @@ use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Token\DataSet; // 用于创建 lcobucci Token 的 claims
 use Lcobucci\JWT\Token\Plain; // lcobucci 的 Plain Token (UnencryptedToken 的一种)
 use Lcobucci\JWT\Token\Signature;
-use PHPUnit\Framework\TestCase; // 所有测试类继承自这个
+use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\TestCase;
 
-/**
- * @internal
- * @coversNothing
- */
+#[CoversNothing]
 class TokenTest extends TestCase
 {
     protected Configuration $lcobucciConfig;
@@ -106,19 +104,19 @@ class TokenTest extends TestCase
         // 如果不是，我们的 Token 实现中 getIssuedAt() 等方法需要调整。
         // 检查：Lcobucci\JWT\Token\Plain->claims()->get() 对于标准时间声明是否返回 DateTimeImmutable
         // 根据 lcobucci/jwt v4 & v5, $token->claims()->get('iat') 确实返回 DateTimeImmutable 对象。
-        $this->assertEquals(time() - 3600, $this->token->getIssuedAt()->getTimestamp(), '', 1.0); // 允许1秒误差
+        $this->assertEqualsWithDelta(time() - 3600, $this->token->getIssuedAt()->getTimestamp(), 1.0);
     }
 
     public function testGetNotBefore(): void
     {
         $this->assertInstanceOf(DateTimeImmutable::class, $this->token->getNotBefore());
-        $this->assertEquals(time() - 3000, $this->token->getNotBefore()->getTimestamp(), '', 1.0);
+        $this->assertEqualsWithDelta(time() - 3000, $this->token->getNotBefore()->getTimestamp(), 1.0);
     }
 
     public function testGetExpirationTime(): void
     {
         $this->assertInstanceOf(DateTimeImmutable::class, $this->token->getExpirationTime());
-        $this->assertEquals(time() + 3600, $this->token->getExpirationTime()->getTimestamp(), '', 1.0);
+        $this->assertEqualsWithDelta(time() + 3600, $this->token->getExpirationTime()->getTimestamp(), 1.0);
     }
 
     public function testGetClaim(): void

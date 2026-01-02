@@ -71,6 +71,11 @@ interface PayloadFactoryInterface
 
     public function generateJti(): string;
 
+    /**
+     * Get the claims that should be refreshed when refreshing a token.
+     *
+     * @return string[]
+     */
     public function getClaimsToRefresh(): array;
 
     // public function processCustomClaims(array $customClaims, mixed $subject = null): array; // 可选的辅助方法

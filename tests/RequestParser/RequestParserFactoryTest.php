@@ -13,13 +13,12 @@ use Kylesean\Jwt\RequestParser\RequestParserFactory;
 use Hyperf\Contract\ConfigInterface;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerInterface; // DI 容器接口
+use Psr\Container\ContainerInterface;
+use stdClass;
 
-/**
- * @internal
- * @coversNothing
- */
+#[CoversNothing]
 class RequestParserFactoryTest extends TestCase
 {
     use MockeryPHPUnitIntegration;

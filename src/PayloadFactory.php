@@ -28,6 +28,16 @@ class PayloadFactory implements PayloadFactoryInterface
      */
     public const DEFAULT_CLAIMS_TO_REFRESH = ['iat', 'exp', 'nbf', 'jti'];
 
+    /**
+     * Maximum allowed TTL in minutes (1 year).
+     */
+    public const MAX_TTL_MINUTES = 525600;
+
+    /**
+     * Maximum allowed refresh TTL in minutes (2 years).
+     */
+    public const MAX_REFRESH_TTL_MINUTES = 1051200;
+
     protected ConfigInterface $config;
     protected ?ClockInterface $clock;
     protected int $ttl;
@@ -53,7 +63,12 @@ class PayloadFactory implements PayloadFactoryInterface
 
     public function setTtl(int $ttl): self
     {
-        $this->ttl = $ttl > 0 ? $ttl : 1;
+        if ($ttl < 1) {
+            $ttl = 1;
+        } elseif ($ttl > self::MAX_TTL_MINUTES) {
+            $ttl = self::MAX_TTL_MINUTES;
+        }
+        $this->ttl = $ttl;
         return $this;
     }
 
@@ -64,7 +79,12 @@ class PayloadFactory implements PayloadFactoryInterface
 
     public function setRefreshTtl(int $refreshTtl): self
     {
-        $this->refreshTtl = $refreshTtl > 0 ? $refreshTtl : 1;
+        if ($refreshTtl < 1) {
+            $refreshTtl = 1;
+        } elseif ($refreshTtl > self::MAX_REFRESH_TTL_MINUTES) {
+            $refreshTtl = self::MAX_REFRESH_TTL_MINUTES;
+        }
+        $this->refreshTtl = $refreshTtl;
         return $this;
     }
 
@@ -117,6 +137,9 @@ class PayloadFactory implements PayloadFactoryInterface
         return $this;
     }
 
+    /**
+     * @return string[]
+     */
     public function getClaimsToRefresh(): array
     {
         $userClaimsToRefresh = $this->config->get('jwt.claims_to_refresh', []);

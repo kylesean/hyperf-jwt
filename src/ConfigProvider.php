@@ -23,6 +23,9 @@ use Kylesean\Jwt\PayloadFactory;
 
 class ConfigProvider
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function __invoke(): array
     {
         return [
