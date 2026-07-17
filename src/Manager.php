@@ -311,7 +311,7 @@ class Manager implements ManagerInterface
             throw new TokenInvalidException('Old token does not have an expiration time.');
         }
 
-        $now = new DateTimeImmutable();
+        $now = $this->clock->now();
         $refreshTtl = $this->payloadFactory->getRefreshTtl();
         $refreshWindowEnd = $exp->add(new DateInterval("PT{$refreshTtl}M"));
 
@@ -319,8 +319,18 @@ class Manager implements ManagerInterface
             throw new TokenExpiredException('Token has expired and is outside the refresh window.');
         }
 
-        $blacklistTtlSeconds = max(1, $refreshWindowEnd->getTimestamp() - $now->getTimestamp());
-        $this->blacklist->add($oldToken, $blacklistTtlSeconds);
+        $blacklistTtlSeconds = $forceForever 
+            ? 31536000 
+            : max(1, $refreshWindowEnd->getTimestamp() - $now->getTimestamp());
+            
+        $concurrencyGracePeriod = (int) $this->hyperfConfig->get('jwt.blacklist_concurrency_grace_period', 0);
+        
+        if (!$this->blacklist->add($oldToken, $blacklistTtlSeconds, $concurrencyGracePeriod)) {
+            if (!$forceForever && empty($oldToken->getId())) {
+                throw new TokenInvalidException('Old token does not have a jti claim and cannot be reliably blacklisted.');
+            }
+            throw new JwtException('Failed to add old token to blacklist.');
+        }
 
         $newPayload = [];
         if (!$resetClaims) {
@@ -346,8 +356,8 @@ class Manager implements ManagerInterface
         }
 
         try {
-            $ttl = $forceForever ? ($this->payloadFactory->getRefreshTtl() * 60 * 24 * 365) : null;
-            if (!$this->blacklist->add($token, $ttl)) {
+            $ttl = $forceForever ? 31536000 : null; // 1 year
+            if (!$this->blacklist->add($token, $ttl, 0)) {
                 if (empty($token->getId())) {
                     throw new JwtException('Token does not have a jti claim and cannot be reliably blacklisted.');
                 }

@@ -10,13 +10,11 @@ use Lcobucci\JWT\Token as LcobucciPlainToken;
 use Lcobucci\JWT\UnencryptedToken;
 use Stringable;
 
-class Token implements TokenInterface
+readonly class Token implements TokenInterface
 {
-    protected UnencryptedToken $lcobucciToken;
-
-    public function __construct(UnencryptedToken $lcobucciToken)
-    {
-        $this->lcobucciToken = $lcobucciToken;
+    public function __construct(
+        protected UnencryptedToken $lcobucciToken
+    ) {
     }
 
     public function getLcobucciToken(): UnencryptedToken

@@ -29,7 +29,7 @@ class Blacklist implements BlacklistInterface
     /**
      * {@inheritdoc}
      */
-    public function add(TokenInterface $token, ?int $ttl = null): bool
+    public function add(TokenInterface $token, ?int $ttl = null, int $concurrencyGracePeriod = 0): bool
     {
         if (!$jti = $token->getId()) {
             return false;
@@ -41,7 +41,11 @@ class Blacklist implements BlacklistInterface
         }
 
         $ttl = $ttl ?? $this->gracePeriod;
-        return $this->cache->set($this->getCacheKey($jti), true, $ttl);
+        
+        // If concurrencyGracePeriod is set, store the absolute timestamp of invalidation
+        $valueToStore = $concurrencyGracePeriod > 0 ? time() + $concurrencyGracePeriod : 0;
+        
+        return $this->cache->set($this->getCacheKey($jti), $valueToStore, $ttl);
     }
 
     /**
@@ -53,7 +57,22 @@ class Blacklist implements BlacklistInterface
             return false;
         }
 
-        return $this->cache->has($this->getCacheKey($jti));
+        $value = $this->cache->get($this->getCacheKey($jti));
+        if ($value === null) {
+            return false;
+        }
+
+        // If stored value is true (legacy support), 0, or '0', it is immediately invalid
+        if ($value === true || $value === 0 || $value === '0') {
+            return true;
+        }
+
+        // If stored value is a future invalidation timestamp, check if it has passed
+        if (is_numeric($value)) {
+            return time() > (int) $value;
+        }
+
+        return true;
     }
 
     /**

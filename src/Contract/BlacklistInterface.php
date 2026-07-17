@@ -20,9 +20,10 @@ interface BlacklistInterface
      * @param TokenInterface $token 要加入黑名单的令牌
      * @param int|null $ttl 可选的缓存存活时间（秒）。如果为 null，则使用默认的黑名单宽限期。
      *                      这允许为单个令牌设置特定的黑名单 TTL。
+     * @param int $concurrencyGracePeriod 协程并发宽限期（秒），在此时间段内 Token 仍有效
      * @return bool 操作是否成功
      */
-    public function add(TokenInterface $token, ?int $ttl = null): bool;
+    public function add(TokenInterface $token, ?int $ttl = null, int $concurrencyGracePeriod = 0): bool;
 
     /**
      * 检查给定的 Token 是否已在黑名单中。

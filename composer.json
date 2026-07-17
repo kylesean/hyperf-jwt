@@ -16,13 +16,13 @@
     }
   ],
   "require": {
-    "php": ">=8.1",
+    "php": "^8.2",
     "lcobucci/jwt": "^5.4",
     "psr/clock": "^1.0",
     "hyperf/contract": "^3.0 || ^3.1",
     "hyperf/cache": "^3.0 || ^3.1",
     "hyperf/stringable": "^3.0 || ^3.1",
-    "psr/simple-cache": "^1.0 || ^2.0 || ^3.0"
+    "psr/simple-cache": "^2.0 || ^3.0"
   },
   "require-dev": {
     "friendsofphp/php-cs-fixer": "^3.0",

@@ -97,6 +97,7 @@ class ManagerTest extends TestCase
         $this->mockHyperfConfig->shouldReceive('get')->with('jwt.required_claims', Mockery::any())->andReturn([])->byDefault();
         $this->mockHyperfConfig->shouldReceive('get')->with('jwt.leeway', Mockery::any())->andReturn(0)->byDefault();
         $this->mockHyperfConfig->shouldReceive('get')->with('jwt.blacklist_enabled', true)->andReturn(true)->byDefault();
+        $this->mockHyperfConfig->shouldReceive('get')->with('jwt.blacklist_concurrency_grace_period', Mockery::any())->andReturn(0)->byDefault();
 
         // 新增：为 Manager::parse() 中 Lcobucci 验证器约束部分添加的配置读取
         $this->mockHyperfConfig->shouldReceive('get')
@@ -320,7 +321,7 @@ class ManagerTest extends TestCase
         $this->mockBlacklist->shouldReceive('add')->once()
             ->with(Mockery::on(function (TokenInterface $token) use ($oldTokenJti) {
                 return $token->getId() === $oldTokenJti;
-            }), Mockery::type('int')) // 刷新时会计算剩余的 refresh window 作为 TTL
+            }), Mockery::type('int'), Mockery::type('int')) // Correct arguments: token, ttl, grace_period
             ->andReturn(true); // 旧 token 成功加入黑名单
 
         // PayloadFactory 行为 (用于生成新 token)
@@ -336,6 +337,25 @@ class ManagerTest extends TestCase
         $this->assertEquals('user_to_refresh', $newToken->getClaim('user_id')); // 自定义声明应被保留
     }
 
+    public function testRefreshTokenThrowsExceptionIfNoJtiAndNotForceForever(): void
+    {
+        $this->expectException(TokenInvalidException::class);
+        $this->expectExceptionMessage('Old token does not have a jti claim and cannot be reliably blacklisted.');
+
+        $now = new DateTimeImmutable();
+        $oldTokenString = $this->generateTestHs256TokenString([
+            'exp' => $now->add(new DateInterval('PT30M'))->getTimestamp(),
+            'iat' => $now->getTimestamp(),
+            'nbf' => $now->getTimestamp(),
+            // No jti claim
+        ], 'test_secret_key_for_hs256_at_least_32_bytes_long');
+
+        $this->mockBlacklist->shouldReceive('add')->once()
+            ->with(Mockery::type(TokenInterface::class), Mockery::type('int'), Mockery::type('int'))
+            ->andReturn(false);
+
+        $this->manager->refreshToken($oldTokenString, false, false);
+    }
 
     public function testInvalidateTokenSuccessfully(): void
     {
@@ -344,22 +364,35 @@ class ManagerTest extends TestCase
         $mockTokenObject->shouldReceive('getId')->andReturn($jti);
 
         $this->mockBlacklist->shouldReceive('add')->once()
-            ->with($mockTokenObject, null) // 默认 grace period
+            ->with($mockTokenObject, null, 0) // Explicit 0 concurrency grace period for manual invalidation
             ->andReturn(true);
 
         $this->assertSame($this->manager, $this->manager->invalidate($mockTokenObject));
     }
 
+    public function testInvalidateTokenForceForeverSuccessfully(): void
+    {
+        $jti = 'jti_to_invalidate';
+        $mockTokenObject = Mockery::mock(TokenInterface::class);
+        $mockTokenObject->shouldReceive('getId')->andReturn($jti);
+
+        $this->mockBlacklist->shouldReceive('add')->once()
+            ->with($mockTokenObject, 31536000, 0) // Expect 1 year TTL
+            ->andReturn(true);
+
+        $this->assertSame($this->manager, $this->manager->invalidate($mockTokenObject, true));
+    }
+
     public function testInvalidateTokenFailsIfBlacklistAddFails(): void
     {
         $this->expectException(JwtException::class);
-        // 根据 Manager::invalidate() 的实现，它会检查 Blacklist::add() 的返回值
-        // 或者捕获 Blacklist::add() 可能抛出的异常
 
         $mockTokenObject = Mockery::mock(TokenInterface::class);
         $mockTokenObject->shouldReceive('getId')->andReturn('some_jti');
 
-        $this->mockBlacklist->shouldReceive('add')->once()->andReturn(false); // 模拟加入黑名单失败
+        $this->mockBlacklist->shouldReceive('add')->once()
+            ->with($mockTokenObject, null, 0)
+            ->andReturn(false); // 模拟加入黑名单失败
 
         $this->manager->invalidate($mockTokenObject);
     }
