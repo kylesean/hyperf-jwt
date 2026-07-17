@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use Kylesean\Jwt\RequestParser\AuthorizationHeader;
+use Kylesean\Jwt\RequestParser\Cookie;
+use Kylesean\Jwt\RequestParser\InputSource;
+use Kylesean\Jwt\RequestParser\QueryString;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
-use Lcobucci\JWT\Signer\Key\InMemory;
 
 return [
     /*
@@ -246,10 +249,10 @@ return [
     |
     */
     'token_parsers' => [
-        \Kylesean\Jwt\RequestParser\AuthorizationHeader::class,
-        \Kylesean\Jwt\RequestParser\QueryString::class,
-        \Kylesean\Jwt\RequestParser\InputSource::class,
-        \Kylesean\Jwt\RequestParser\Cookie::class,
+        AuthorizationHeader::class,
+        QueryString::class,
+        InputSource::class,
+        Cookie::class,
     ],
 
     /*

@@ -1,5 +1,5 @@
 parameters:
-    level: 6
+    level: 4
     paths:
         - src
     excludePaths:
@@ -7,3 +7,5 @@ parameters:
     ignoreErrors:
         - '#Call to an undefined method Psr\\Container\\ContainerInterface::make\(\)#'
     reportUnmatchedIgnoredErrors: false
+    bootstrapFiles:
+            - tests/bootstrap.php

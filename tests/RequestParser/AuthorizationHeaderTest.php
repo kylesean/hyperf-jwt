@@ -77,7 +77,7 @@ class AuthorizationHeaderTest extends TestCase
     {
         // 当前 AuthorizationHeader 的实现要求前缀后有空格 "Bearer <token>"
         $parser = new AuthorizationHeader();
-        $request = $this->createRequestWithHeader('Authorization', 'Bearermy_jwt_token');
+        $request = $this->createRequestWithHeader('Authorization', 'Bearer_my_jwt_token');
         $this->assertNull($parser->parse($request));
     }
 
