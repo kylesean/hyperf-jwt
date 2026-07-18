@@ -11,12 +11,12 @@ use Kylesean\Jwt\Exception\TokenExpiredException;
 use Kylesean\Jwt\Exception\TokenInvalidException;
 use Kylesean\Jwt\Exception\TokenNotYetValidException;
 use Kylesean\Jwt\Validator;
-use Mockery; // 我们将使用 Mockery 来创建 TokenInterface 的 mock 对象
+use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass(Validator::class)]
 class ValidatorTest extends TestCase
 {
     use MockeryPHPUnitIntegration;
@@ -28,7 +28,7 @@ class ValidatorTest extends TestCase
     {
         parent::setUp();
         $this->validator = new Validator();
-        // 为每个测试创建一个新的 mock Token，避免状态污染
+        // Create a new mock Token for each test to avoid state pollution
         $this->mockToken = Mockery::mock(TokenInterface::class);
     }
 
@@ -49,12 +49,12 @@ class ValidatorTest extends TestCase
         $this->validator->setLeeway(0);
         $this->assertEquals(0, $this->validator->getLeeway());
 
-        // 测试 leeway 不能为负数
+        // Test leeway cannot be negative
         $this->validator->setLeeway(-10);
         $this->assertEquals(0, $this->validator->getLeeway());
     }
 
-    // --- 测试 checkTimestamps 方法 ---
+    // --- Test checkTimestamps method ---
 
     public function testCheckTimestampsWhenTokenIsExpired(): void
     {
@@ -62,8 +62,8 @@ class ValidatorTest extends TestCase
         $this->expectExceptionMessage('Token has expired.');
 
         $now = new DateTimeImmutable();
-        $this->mockToken->shouldReceive('getExpirationTime')->andReturn($now->sub(new DateInterval('PT1S'))); // 1秒前过期
-        $this->mockToken->shouldReceive('getNotBefore')->andReturnNull(); // 其他时间戳不影响此测试
+        $this->mockToken->shouldReceive('getExpirationTime')->andReturn($now->sub(new DateInterval('PT1S'))); // Expired 1 second ago
+        $this->mockToken->shouldReceive('getNotBefore')->andReturnNull(); // Other timestamps do not affect this test
         $this->mockToken->shouldReceive('getIssuedAt')->andReturnNull();
 
         $this->validator->checkTimestamps($this->mockToken);
@@ -74,15 +74,15 @@ class ValidatorTest extends TestCase
         $this->expectException(TokenExpiredException::class);
 
         $now = new DateTimeImmutable();
-        $this->validator->setLeeway(60); // 60秒容差
-        // 令牌在 30 秒前过期，但在容差范围内，不应抛异常
+        $this->validator->setLeeway(60); // 60s leeway
+        // Token expired 30s ago, but within leeway, should not throw exception
         // $this->mockToken->shouldReceive('getExpirationTime')->andReturn($now->sub(new DateInterval('PT30S')));
         // $this->mockToken->shouldReceive('getNotBefore')->andReturnNull();
         // $this->mockToken->shouldReceive('getIssuedAt')->andReturnNull();
-        // $this->validator->checkTimestamps($this->mockToken); // 这行会因为没有异常而失败
+        // $this->validator->checkTimestamps($this->mockToken); // This line would fail because no exception thrown
 
-        // 令牌在 90 秒前过期，超出了容差范围，应该抛出异常
-        $this->mockToken = Mockery::mock(TokenInterface::class); // 新的 mock
+        // Token expired 90s ago, exceeding leeway, should throw exception
+        $this->mockToken = Mockery::mock(TokenInterface::class); // New mock
         $this->mockToken->shouldReceive('getExpirationTime')->once()->andReturn($now->sub(new DateInterval('PT90S')));
         $this->mockToken->shouldReceive('getNotBefore')->andReturnNull();
         $this->mockToken->shouldReceive('getIssuedAt')->andReturnNull();
@@ -96,7 +96,7 @@ class ValidatorTest extends TestCase
 
         $now = new DateTimeImmutable();
         $this->mockToken->shouldReceive('getExpirationTime')->andReturnNull();
-        $this->mockToken->shouldReceive('getNotBefore')->andReturn($now->add(new DateInterval('PT1S'))); // 1秒后才生效
+        $this->mockToken->shouldReceive('getNotBefore')->andReturn($now->add(new DateInterval('PT1S'))); // Valid only after 1 second
         $this->mockToken->shouldReceive('getIssuedAt')->andReturnNull();
 
         $this->validator->checkTimestamps($this->mockToken);
@@ -110,7 +110,7 @@ class ValidatorTest extends TestCase
         $now = new DateTimeImmutable();
         $this->mockToken->shouldReceive('getExpirationTime')->andReturnNull();
         $this->mockToken->shouldReceive('getNotBefore')->andReturnNull();
-        $this->mockToken->shouldReceive('getIssuedAt')->andReturn($now->add(new DateInterval('PT60S'))); // iat 在未来1分钟
+        $this->mockToken->shouldReceive('getIssuedAt')->andReturn($now->add(new DateInterval('PT60S'))); // iat in 1 minute future
 
         $this->validator->checkTimestamps($this->mockToken);
     }
@@ -120,8 +120,8 @@ class ValidatorTest extends TestCase
         $this->expectException(TokenInvalidException::class);
         $this->expectExceptionMessage('Expiration Time (exp) claim is required but not present.');
 
-        $this->validator->setRequiredClaims(['exp']); // 设置 exp 为必需
-        $this->mockToken->shouldReceive('getExpirationTime')->andReturnNull(); // exp 缺失
+        $this->validator->setRequiredClaims(['exp']); // Set exp as required
+        $this->mockToken->shouldReceive('getExpirationTime')->andReturnNull(); // exp missing
         $this->mockToken->shouldReceive('getNotBefore')->andReturnNull();
         $this->mockToken->shouldReceive('getIssuedAt')->andReturnNull();
 
@@ -135,13 +135,13 @@ class ValidatorTest extends TestCase
         $this->mockToken->shouldReceive('getNotBefore')->andReturn($now->sub(new DateInterval('PT60S')));
         $this->mockToken->shouldReceive('getIssuedAt')->andReturn($now->sub(new DateInterval('PT120S')));
 
-        // 如果没有异常抛出，则测试通过
+        // If no exception thrown, test passes
         $this->validator->checkTimestamps($this->mockToken);
-        $this->assertTrue(true); // 明确断言测试已执行到此
+        $this->assertTrue(true); // Explicitly assert test reached here
     }
 
 
-    // --- 测试 checkClaims 方法 ---
+    // --- Test checkClaims method ---
 
     public function testCheckClaimsMissingRequiredClaim(): void
     {
@@ -149,9 +149,9 @@ class ValidatorTest extends TestCase
         $this->expectExceptionMessage('Required claim "iss" is missing.');
 
         $this->mockToken->shouldReceive('hasClaim')->with('iss')->andReturn(false);
-        // $this->validator->setRequiredClaims(['iss']); // setRequiredClaims 是 Validator 的方法，不是 checkClaims 的参数
+        // $this->validator->setRequiredClaims(['iss']); // setRequiredClaims is a method of Validator, not a parameter of checkClaims
 
-        $this->validator->checkClaims($this->mockToken, [], ['iss']); // 第三个参数是 requiredClaimKeys
+        $this->validator->checkClaims($this->mockToken, [], ['iss']); // Third parameter is requiredClaimKeys
     }
 
     public function testCheckClaimsMissingExpectedClaim(): void
@@ -180,11 +180,11 @@ class ValidatorTest extends TestCase
         $this->expectExceptionMessageMatches('/Audience \(aud\) claim mismatch. Expected one of \[(.*?)\] but got \[(.*?)\]\./');
 
         $this->mockToken->shouldReceive('hasClaim')->with('aud')->once()->andReturn(true);
-        // 即使我们主要测试 getAudience，getClaim('aud') 也会被调用
-        $this->mockToken->shouldReceive('getClaim')->with('aud')->once()->andReturn(['client-a']); // 返回与 getAudience 相同的值或一个兼容的值
-        $this->mockToken->shouldReceive('getAudience')->once()->andReturn(['client-a']); // Token 中的 aud
+        // Even though we mainly test getAudience, getClaim('aud') will also be called
+        $this->mockToken->shouldReceive('getClaim')->with('aud')->once()->andReturn(['client-a']); // Return same value as getAudience or compatible value
+        $this->mockToken->shouldReceive('getAudience')->once()->andReturn(['client-a']); // aud in Token
 
-        $this->validator->checkClaims($this->mockToken, ['aud' => 'client-b']); // 期望的 aud
+        $this->validator->checkClaims($this->mockToken, ['aud' => 'client-b']); // Expected aud
 
 
     }
@@ -192,11 +192,11 @@ class ValidatorTest extends TestCase
     public function testCheckClaimsAudienceArrayMatch(): void
     {
         $this->mockToken->shouldReceive('hasClaim')->with('aud')->once()->andReturn(true);
-        // 即使我们主要测试 getAudience，getClaim('aud') 也会被调用
-        $this->mockToken->shouldReceive('getClaim')->with('aud')->once()->andReturn(['client-a', 'client-b']); // 返回与 getAudience 相同的值或一个兼容的值
+        // Even though we mainly test getAudience, getClaim('aud') will also be called
+        $this->mockToken->shouldReceive('getClaim')->with('aud')->once()->andReturn(['client-a', 'client-b']); // Return same value as getAudience or compatible value
         $this->mockToken->shouldReceive('getAudience')->once()->andReturn(['client-a', 'client-b']);
 
-        // 期望的 aud 是数组，且 token 中包含其中一个
+        // Expected aud is an array, and token contains one of them
         $this->validator->checkClaims($this->mockToken, ['aud' => ['client-b', 'client-c']]);
         $this->assertTrue(true); // No exception
     }
@@ -205,37 +205,37 @@ class ValidatorTest extends TestCase
     {
         $this->mockToken->shouldReceive('hasClaim')->with('iss')->andReturn(true);
         $this->mockToken->shouldReceive('getClaim')->with('iss')->andReturn('my-app');
-        $this->mockToken->shouldReceive('hasClaim')->with('sub')->andReturn(true); // 仅检查存在性
+        $this->mockToken->shouldReceive('hasClaim')->with('sub')->andReturn(true); // Check existence only
 
         $this->validator->checkClaims($this->mockToken, ['iss' => 'my-app'], ['sub']);
         $this->assertTrue(true); // No exception
     }
 
 
-    // --- 测试 validate 方法 (集成测试 checkClaims 和 checkTimestamps) ---
+    // --- Test validate method (Integration test of checkClaims and checkTimestamps) ---
     public function testValidateMethodCallsSubMethods(): void
     {
-        // 使用一个 Spy 来验证内部方法是否被调用，但更简单的是测试其综合效果
-        // 这里我们测试一个完全有效的场景
+        // Using a Spy to verify internal method calls, but simpler to test combined effect
+        // Here we test a fully valid scenario
         $now = new DateTimeImmutable();
-        $this->validator->setRequiredClaims(['custom_required']); // 设置一个我们 checkClaims 会检查的
+        $this->validator->setRequiredClaims(['custom_required']); // Set a required claim for checkClaims to verify
         $this->validator->setLeeway(0);
 
         $this->mockToken->shouldReceive('hasClaim')->with('custom_required')->andReturn(true);
-        $this->mockToken->shouldReceive('getClaim')->with('custom_required')->andReturn('some_value'); // 假设配置的 expectedClaims 需要它
+        $this->mockToken->shouldReceive('getClaim')->with('custom_required')->andReturn('some_value'); // Assume configured expectedClaims requires it
 
-        // 时间戳相关
+        // Timestamp related
         $this->mockToken->shouldReceive('getExpirationTime')->andReturn($now->add(new DateInterval('PT1H')));
         $this->mockToken->shouldReceive('getNotBefore')->andReturn($now->sub(new DateInterval('PT1M')));
         $this->mockToken->shouldReceive('getIssuedAt')->andReturn($now->sub(new DateInterval('PT2M')));
 
-        // 假设配置的 expectedClaims (运行时传入 validate 的)
+        // Assume configured expectedClaims (passed to validate at runtime)
         $expectedClaimsForRuntime = ['iss' => 'expected-issuer'];
         $this->mockToken->shouldReceive('hasClaim')->with('iss')->andReturn(true);
         $this->mockToken->shouldReceive('getClaim')->with('iss')->andReturn('expected-issuer');
-        // $this->mockToken->shouldReceive('getAudience')->andReturn([]); // 如果 aud 是 required_claims 或 expectedClaims 的一部分
+        // $this->mockToken->shouldReceive('getAudience')->andReturn([]); // If aud is part of required_claims or expectedClaims
 
-        // validate 方法不返回任何东西，如果没有异常则通过
+        // validate method returns nothing, passes if no exception
         $this->validator->validate($this->mockToken, true, $expectedClaimsForRuntime);
         $this->assertTrue(true);
     }
@@ -246,8 +246,8 @@ class ValidatorTest extends TestCase
 
         $now = new DateTimeImmutable();
         $this->mockToken->shouldReceive('getExpirationTime')->once()->andReturn($now->sub(new DateInterval('PT1S'))); // Expired
-        // 即使其他声明有效，时间戳无效也会导致 validate 失败
-        $this->mockToken->shouldReceive('hasClaim')->andReturn(true); // 让 checkClaims 通过
+        // Even if other claims are valid, invalid timestamp causes validate to fail
+        $this->mockToken->shouldReceive('hasClaim')->andReturn(true); // Pass checkClaims
         $this->mockToken->shouldReceive('getClaim')->andReturn('any_value');
         $this->mockToken->shouldReceive('getNotBefore')->andReturnNull();
         $this->mockToken->shouldReceive('getIssuedAt')->andReturnNull();
@@ -263,12 +263,12 @@ class ValidatorTest extends TestCase
         $now = new DateTimeImmutable();
         $this->validator->setRequiredClaims(['must_exist']);
 
-        // 时间戳有效
+        // Valid timestamps
         $this->mockToken->shouldReceive('getExpirationTime')->andReturn($now->add(new DateInterval('PT1H')));
         $this->mockToken->shouldReceive('getNotBefore')->andReturn($now->sub(new DateInterval('PT1M')));
         $this->mockToken->shouldReceive('getIssuedAt')->andReturn($now->sub(new DateInterval('PT2M')));
 
-        // 但声明检查失败
+        // But claim check fails
         $this->mockToken->shouldReceive('hasClaim')->with('must_exist')->andReturn(false);
 
         $this->validator->validate($this->mockToken, true, []);

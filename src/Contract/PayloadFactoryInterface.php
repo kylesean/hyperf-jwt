@@ -9,63 +9,64 @@ use DateTimeImmutable;
 interface PayloadFactoryInterface
 {
     /**
-     * 设置令牌的有效期 (Time To Live)，单位为分钟。
-     * 工厂需要知道 TTL 来计算 'exp' 声明。
+     * Set the token time-to-live (TTL) in minutes.
+     * The factory needs to know the TTL to calculate the 'exp' claim.
      *
+     * @param int $ttl Time-to-live in minutes
      * @return $this
      */
     public function setTtl(int $ttl): self;
 
     /**
-     * 获取令牌的有效期（分钟）。
+     * Get the token time-to-live (TTL) in minutes.
      */
     public function getTtl(): int;
 
     /**
-     * 获取令牌刷新窗口期（分钟）。
-     * 过期令牌在此窗口期内仍可刷新。
+     * Get the token refresh time-to-live (Refresh TTL) in minutes.
+     * Expired tokens can still be refreshed within this window.
      */
     public function getRefreshTtl(): int;
 
     /**
-     * 设置令牌的 'nbf' (Not Before) 相对于 'iat' (Issued At) 的偏移量（秒）。
+     * Set the 'nbf' (Not Before) offset in seconds relative to 'iat' (Issued At).
      *
      * @return $this
      */
     public function setNbfOffsetSeconds(int $seconds): self;
 
     /**
-     * 获取 'nbf' 偏移量（秒）。
+     * Get the 'nbf' offset in seconds.
      */
     public function getNbfOffsetSeconds(): int;
 
     /**
-     * 设置令牌的签发者 (iss)。
+     * Set the token issuer (iss).
      * @return $this
      */
     public function setIssuer(string $issuer): self;
 
     /**
-     * 获取令牌的签发者。
+     * Get the token issuer.
      */
     public function getIssuer(): string;
 
     /**
-     * 设置令牌的受众 (aud)。
+     * Set the token audience (aud).
      * @param string|string[] $audience
      * @return $this
      */
     public function setAudience(string|array $audience): self;
 
     /**
-     * 获取令牌的受众。
+     * Get the token audience.
      * @return string|string[]
      */
     public function getAudience(): string|array;
 
     /**
-     * 获取当前时间，用于生成时间相关的声明。
-     * 允许覆盖以方便测试。
+     * Get the current time used for generating time-related claims.
+     * Allows overriding for testing purposes.
      */
     public function getCurrentTime(): DateTimeImmutable;
 
@@ -78,5 +79,5 @@ interface PayloadFactoryInterface
      */
     public function getClaimsToRefresh(): array;
 
-    // public function processCustomClaims(array $customClaims, mixed $subject = null): array; // 可选的辅助方法
+    // public function processCustomClaims(array $customClaims, mixed $subject = null): array; // Optional helper method
 }

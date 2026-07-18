@@ -4,17 +4,15 @@ declare(strict_types=1);
 
 namespace Kylesean\Jwt\Contract;
 
-use Kylesean\Jwt\Contract\TokenInterface; // 我们的令牌接口
+use Kylesean\Jwt\Contract\TokenInterface;
 
 /**
  * Interface ValidatorInterface.
- *
- * 定义了验证 JWT 令牌有效性的方法。
  */
 interface ValidatorInterface
 {
     /**
-     * 设置在验证时必须存在的声明。
+     * Set the required claims for validation.
      *
      * @param string[] $claims 例如 ['iss', 'sub', 'exp']
      * @return $this
@@ -22,59 +20,58 @@ interface ValidatorInterface
     public function setRequiredClaims(array $claims): self;
 
     /**
-     * 获取必须存在的声明。
+     * Get the required claims.
      *
      * @return string[]
      */
     public function getRequiredClaims(): array;
 
     /**
-     * 设置验证时间声明 (exp, nbf, iat) 时允许的时钟偏差（秒）。
+     * Set the clock skew in seconds for validating time-related claims (exp, nbf, iat).
      *
-     * @param int $leeway 时钟偏差秒数，默认为 0
+     * @param int $leeway Clock skew in seconds, defaults to 0
      * @return $this
      */
     public function setLeeway(int $leeway): self;
 
     /**
-     * 获取时钟偏差秒数。
+     * Get the clock skew in seconds.
      */
     public function getLeeway(): int;
 
     /**
-     * 检查并验证令牌的结构和声明。
-     * 如果令牌无效，则应抛出相应的异常。
+     * Check and validate the token's structure and claims.
      *
-     * @param TokenInterface $token 要验证的令牌对象
-     * @param bool $checkStandardClaims 是否检查标准时间声明 (exp, nbf, iat)
-     * @param array<string, mixed> $expectedClaims 期望的声明及其值，例如 ['iss' => 'my-app', 'aud' => 'my-audience']
-     * @throws \Kylesean\Jwt\Exception\TokenExpiredException 如果令牌已过期
-     * @throws \Kylesean\Jwt\Exception\TokenInvalidException 如果令牌无效（例如，声明缺失或不匹配）
-     * @throws \Kylesean\Jwt\Exception\TokenNotYetValidException 如果令牌尚未生效
+     * @param TokenInterface $token
+     * @param bool $checkStandardClaims
+     * @param array<string, mixed> $expectedClaims
+     * @throws \Kylesean\Jwt\Exception\TokenExpiredException
+     * @throws \Kylesean\Jwt\Exception\TokenInvalidException
+     * @throws \Kylesean\Jwt\Exception\TokenNotYetValidException
      * @return void
      */
     public function validate(TokenInterface $token, bool $checkStandardClaims = true, array $expectedClaims = []): void;
 
     /**
-     * 检查令牌的标准时间声明 (exp, nbf, iat)。
+     * Check the token's standard time-related claims (exp, nbf, iat).
      *
-     * @param TokenInterface $token 要检查的令牌
+     * @param TokenInterface $token
      * @throws \Kylesean\Jwt\Exception\TokenExpiredException
      * @throws \Kylesean\Jwt\Exception\TokenNotYetValidException
-     * @throws \Kylesean\Jwt\Exception\TokenInvalidException 如果 'iat' 在 'nbf' 或 'exp' 之后
+     * @throws \Kylesean\Jwt\Exception\TokenInvalidException
      * @return void
      */
     public function checkTimestamps(TokenInterface $token): void;
 
     /**
-     * 检查令牌是否包含所有必需的声明，并且可选地检查声明的值。
+     * Check if the token contains all required claims, and optionally check claim values.
      *
-     * @param TokenInterface $token 要检查的令牌
-     * @param array<string, mixed> $expectedClaimsToMatch 期望的声明及其值。如果值设为 true，则只检查声明是否存在。
-     *                                        例如：['iss' => 'expected_issuer', 'sub' => true]
-     *                                        表示 'iss' 必须是 'expected_issuer', 'sub' 必须存在但值不限。
-     * @param string[] $requiredClaimKeys 仅要求存在的声明键名列表。
-     * @throws \Kylesean\Jwt\Exception\TokenInvalidException 如果声明无效或缺失
+     * @param TokenInterface $token The token to check
+     * @param array<string, mixed> $expectedClaimsToMatch The expected claims and their values. If the value is set to true, only check for the existence of the claim.
+     *                                        For example: ['iss' => 'expected_issuer', 'sub' => true]
+     *                                        Means 'iss' must be 'expected_issuer', and 'sub' must exist but its value is not limited.
+     * @param string[] $requiredClaimKeys Array of claim keys that must exist in the token.
+     * @throws \Kylesean\Jwt\Exception\TokenInvalidException If the claim is invalid or missing
      * @return void
      */
     public function checkClaims(TokenInterface $token, array $expectedClaimsToMatch = [], array $requiredClaimKeys = []): void;

@@ -7,11 +7,11 @@ namespace Kylesean\Jwt\Tests\RequestParser;
 use Kylesean\Jwt\RequestParser\Cookie;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 
-#[CoversNothing]
+#[CoversClass(Cookie::class)]
 class CookieTest extends TestCase
 {
     use MockeryPHPUnitIntegration;
@@ -25,7 +25,7 @@ class CookieTest extends TestCase
 
     public function testParseWithValidTokenInCookie(): void
     {
-        $parser = new Cookie(); // 默认 Cookie 名 "token"
+        $parser = new Cookie(); // Default cookie name "token"
         $request = $this->createRequestWithCookies(['token' => 'my_jwt_from_cookie']);
         $this->assertEquals('my_jwt_from_cookie', $parser->parse($request));
     }

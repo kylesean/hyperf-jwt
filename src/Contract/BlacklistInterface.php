@@ -8,61 +8,63 @@ use Kylesean\Jwt\Contract\TokenInterface;
 /**
  * Interface BlacklistInterface.
  *
- * 定义了管理 JWT 黑名单的契约。
- * 黑名单用于使已签发的令牌失效。
+ * Defines the contract for managing the JWT blacklist.
+ * The blacklist is used to invalidate issued tokens.
  */
 interface BlacklistInterface
 {
     /**
-     * 将给定的 Token 添加到黑名单中。
-     * 通常，令牌的唯一标识符 (jti) 和其过期时间 (exp) 会被存储。
+     * Add the given token to the blacklist.
+     * Typically, the token's unique identifier (jti) and its expiration time (exp) are stored.
      *
-     * @param TokenInterface $token 要加入黑名单的令牌
-     * @param int|null $ttl 可选的缓存存活时间（秒）。如果为 null，则使用默认的黑名单宽限期。
-     *                      这允许为单个令牌设置特定的黑名单 TTL。
-     * @param int $concurrencyGracePeriod 协程并发宽限期（秒），在此时间段内 Token 仍有效
-     * @return bool 操作是否成功
+     * @param TokenInterface $token The token to be blacklisted
+     * @param int|null $ttl Optional time-to-live in seconds. If null, the default grace period is used.
+     *                      This allows setting a specific blacklist TTL for an individual token.
+     * @param int $concurrencyGracePeriod Coroutine concurrency grace period in seconds, during which the token remains valid
+     * @return bool True on success, false on failure
      */
     public function add(TokenInterface $token, ?int $ttl = null, int $concurrencyGracePeriod = 0): bool;
 
     /**
-     * 检查给定的 Token 是否已在黑名单中。
+     * Check whether the given token is in the blacklist.
      *
-     * @param TokenInterface $token 要检查的令牌
-     * @return bool 如果令牌在黑名单中则返回 true，否则返回 false
+     * @param TokenInterface $token The token to check
+     * @return bool True if the token is in the blacklist, false otherwise
      */
     public function has(TokenInterface $token): bool;
 
     /**
-     * 从黑名单中移除给定的 Token。
-     * 注意：某些缓存驱动可能不高效地支持删除操作，或者此操作可能不是必需的，
-     * 因为黑名单条目通常有 TTL（存活时间）。
+     * Remove the given token from the blacklist.
+     * Note: Some cache drivers may not support deletion efficiently, or this operation
+     * may not be necessary as blacklist entries usually have a TTL (Time-To-Live).
      *
-     * @param TokenInterface $token 要从黑名单中移除的令牌
-     * @return bool 操作是否成功
+     * @param TokenInterface $token The token to remove from the blacklist
+     * @return bool True on success, false on failure
      */
     public function remove(TokenInterface $token): bool;
 
     /**
-     * 清空所有黑名单条目。
-     * 警告：这将使所有之前加入黑名单的令牌重新有效（直到它们自然过期）。
-     * 此操作应谨慎使用。
+     * Clear all blacklist entries.
+     * Warning: This will make all previously blacklisted tokens valid again (until they naturally expire).
+     * Use this operation with caution.
      *
-     * @return bool 操作是否成功
+     * @return bool True on success, false on failure
      */
     public function clear(): bool;
 
     /**
-     * 设置黑名单中条目的默认存活时间（秒）。
-     * 这个值通常对应于配置中的 'blacklist_grace_period'。
+     * Set the default grace period (in seconds) for entries in the blacklist.
+     * This value typically corresponds to 'blacklist_grace_period' in configuration.
      *
-     * @param int $ttl 存活时间（秒）
+     * @param int $ttl Time-to-live in seconds
      * @return $this
      */
     public function setDefaultGracePeriod(int $ttl): self;
 
     /**
-     * 获取黑名单中条目的默认存活时间（秒）。
+     * Get the default grace period (in seconds) for entries in the blacklist.
+     *
+     * @return int The default grace period in seconds
      */
     public function getDefaultGracePeriod(): int;
 }

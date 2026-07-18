@@ -6,7 +6,6 @@ namespace Kylesean\Jwt;
 
 use Kylesean\Jwt\Blacklist;
 use Kylesean\Jwt\Cache\CacheFactory;
-use Kylesean\Jwt\Cache\CacheItemPoolFactory;
 use Kylesean\Jwt\Command\GenJwtKeyCommand;
 use Kylesean\Jwt\Contract\BlacklistInterface;
 use Kylesean\Jwt\Contract\ManagerInterface;
@@ -30,31 +29,31 @@ class ConfigProvider
     {
         return [
             'dependencies' => [
-                    // 核心 JWT 管理器
+                // core jwt manager
                 ManagerInterface::class => Manager::class,
-                // Lcobucci JWT 配置对象
+                // Lcobucci JWT Configuration Object
                 \Lcobucci\JWT\Configuration::class => \Kylesean\Jwt\Factory\LcobucciFactory::class,
-                    // Token 对象实现
+                // Token object implementation
                 TokenInterface::class => Token::class,
-                    // JWT 验证器
+                // JWT validator
                 ValidatorInterface::class => Validator::class,
-                    // 黑名单实现
+                // blacklist implementation
                 BlacklistInterface::class => Blacklist::class,
-                    // 请求解析器工厂
+                // request parser factory
                 RequestParserFactoryInterface::class => RequestParserFactory::class,
-                    // 缓存相关工厂
+                // cache related factory
                 CacheFactory::class => CacheFactory::class,
-                    //CacheItemPoolFactory::class => CacheItemPoolFactory::class,
+                // payload factory
                 PayloadFactoryInterface::class => PayloadFactory::class
             ],
             'commands' => [
-                    // 生成 JWT 密钥的命令
+                // generate jwt key command
                 GenJwtKeyCommand::class,
             ],
             'publish' => [
                 [
                     'id' => 'config',
-                    'description' => 'The config for kylesean/hyperf-jwt.', // 配置描述
+                    'description' => 'The config for kylesean/hyperf-jwt.',
                     'source' => __DIR__ . '/../publish/jwt.php',
                     'destination' => (defined('BASE_PATH') ? BASE_PATH : '') . '/config/autoload/jwt.php',
                 ],
@@ -62,7 +61,7 @@ class ConfigProvider
             'annotations' => [
                 'scan' => [
                     'paths' => [
-                        __DIR__, // 扫描当前包的注解，如果需要的话
+                        __DIR__, // scan current package annotations if needed
                     ],
                 ],
             ],

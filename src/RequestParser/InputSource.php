@@ -8,7 +8,7 @@ use Kylesean\Jwt\Contract\RequestParser\RequestParserInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Parses JWT from request body (POST data or JSON).
+ * Parse JWT from request body (POST data or JSON).
  */
 class InputSource implements RequestParserInterface
 {

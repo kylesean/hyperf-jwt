@@ -155,7 +155,7 @@ class Manager implements ManagerInterface
             throw new TokenInvalidException('Could not decode token: ' . $e->getMessage(), (int) $e->getCode(), $e);
         }
 
-        // 1. 签名校验 (这是所有后续操作的前提)
+        // 1. signature validation (this is a prerequisite for all subsequent operations)
         try {
             $this->lcobucciConfig->validator()->assert($lcobucciToken, new SignedWith(
                 $this->lcobucciConfig->signer(),
@@ -167,7 +167,7 @@ class Manager implements ManagerInterface
 
         $ourToken = $this->container->make(Token::class, ['lcobucciToken' => $lcobucciToken]);
 
-        // 2. 使用 Lcobucci 原生约束进行统一验证
+        // 2. use Lcobucci native constraints for unified validation
         $constraints = $this->buildValidationConstraints();
         if (!empty($constraints)) {
             try {
@@ -177,12 +177,12 @@ class Manager implements ManagerInterface
             }
         }
 
-        // 3. 黑名单检查
+        // 3. blacklist check
         if ($this->hyperfConfig->get('jwt.blacklist_enabled', true) && $this->blacklist->has($ourToken)) {
             throw new TokenInvalidException('Token has been blacklisted.');
         }
 
-        // 4. 解析各种预期声明以供验证
+        // 4. parse various expected claims for validation
         $expectedClaims = [];
         if ($this->hyperfConfig->get('jwt.required_claims.iss', false)) {
             $expectedClaims['iss'] = $this->payloadFactory->getIssuer();
@@ -191,15 +191,15 @@ class Manager implements ManagerInterface
             $expectedClaims['aud'] = $this->payloadFactory->getAudience();
         }
 
-        // 5. 自定义及必需声明验证（含 Issuer / Audience 的 OR 逻辑支持）
+        // 5. custom and required claims validation (including Issuer / Audience's OR logic support)
         $this->validator->checkClaims($ourToken, $expectedClaims, $this->validator->getRequiredClaims());
 
         return $ourToken;
     }
 
     /**
-     * 构建 Lcobucci 验证约束链。
-     * 使用 LooseValidAt 进行时间验证（允许缺少部分时间声明）。
+     * build Lcobucci validation constraint chain
+     * use LooseValidAt for time validation (allow missing some time claims)
      *
      * @return array<\Lcobucci\JWT\Validation\Constraint>
      */
@@ -207,7 +207,7 @@ class Manager implements ManagerInterface
     {
         $constraints = [];
 
-        // 时间验证：使用 LooseValidAt（允许缺少部分时间声明）
+        // time validation: use LooseValidAt (allow missing some time claims)
         $leeway = $this->validator->getLeeway();
         $leewayInterval = $leeway > 0
             ? DateInterval::createFromDateString($leeway . ' seconds')
@@ -218,7 +218,7 @@ class Manager implements ManagerInterface
     }
 
     /**
-     * 处理 Lcobucci 验证失败，转换为业务语义异常。
+     * handle Lcobucci validation failure, convert to business semantic exception
      *
      * @throws TokenExpiredException
      * @throws TokenNotYetValidException
@@ -232,7 +232,7 @@ class Manager implements ManagerInterface
         if ($firstViolation instanceof ConstraintViolation) {
             $constraintClass = $firstViolation->constraint;
 
-            // 根据具体的约束类名判断异常类型
+            // judge exception type based on specific constraint class name
             if ($constraintClass === LooseValidAt::class || $constraintClass === StrictValidAt::class) {
                 $message = $firstViolation->getMessage();
                 $lowerMessage = strtolower($message);
@@ -363,6 +363,8 @@ class Manager implements ManagerInterface
                 }
                 throw new JwtException('Failed to add token to blacklist.');
             }
+        } catch (JwtException $e) {
+            throw $e; // Re-throw our own exceptions directly without wrapping
         } catch (\Throwable $e) {
             throw new JwtException('Error while invalidating token: ' . $e->getMessage(), (int) $e->getCode(), $e);
         }

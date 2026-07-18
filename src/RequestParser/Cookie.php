@@ -8,7 +8,7 @@ use Kylesean\Jwt\Contract\RequestParser\RequestParserInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Parses JWT from HTTP cookies.
+ * Parse JWT from HTTP cookies.
  */
 class Cookie implements RequestParserInterface
 {

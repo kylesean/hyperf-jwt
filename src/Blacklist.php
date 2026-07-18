@@ -35,7 +35,7 @@ class Blacklist implements BlacklistInterface
             return false;
         }
 
-        // 如果已经存在，说明已经被其他进程拉黑，不重复操作
+        // If the token has been blacklisted, return true
         if ($this->has($token)) {
             return true;
         }
@@ -89,14 +89,11 @@ class Blacklist implements BlacklistInterface
 
     /**
      * {@inheritdoc}
-     *
-     * PSR-16 要求 clear() 返回 bool。
-     * 由于黑名单基于前缀且通常共享缓存池，全量清理可能导致误删其他业务数据。
-     * 返回 false 表示该操作不受当前实现支持。
+     * @throws JwtException Clearing the entire JWT blacklist is unsupported to prevent unintentional cache evictions.
      */
     public function clear(): bool
     {
-        return false;
+        throw new JwtException('Clearing the entire JWT blacklist is unsupported to prevent unintentional cache evictions.');
     }
 
     /**
@@ -116,10 +113,6 @@ class Blacklist implements BlacklistInterface
         return $this->gracePeriod;
     }
 
-    /**
-     * 生成混淆后的缓存键。
-     * 使用 SHA256 哈希以防止特殊字符干扰并增强安全性。
-     */
     protected function getCacheKey(string $jti): string
     {
         return $this->cachePrefix . hash('sha256', $jti);

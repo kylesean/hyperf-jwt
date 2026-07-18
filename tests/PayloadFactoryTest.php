@@ -9,10 +9,10 @@ use Kylesean\Jwt\PayloadFactory;
 use Hyperf\Contract\ConfigInterface;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversNothing]
+#[CoversClass(PayloadFactory::class)]
 class PayloadFactoryTest extends TestCase
 {
     use MockeryPHPUnitIntegration;
@@ -25,35 +25,35 @@ class PayloadFactoryTest extends TestCase
         $this->mockConfig = Mockery::mock(ConfigInterface::class);
     }
 
-    // 辅助方法，用于创建 PayloadFactory 实例并预设 Config mock
+    // Helper method to create PayloadFactory instance with preset Config mock
     private function createPayloadFactory(array $configGetReturns = []): PayloadFactory
     {
-        // 设置 ConfigInterface::get 的默认返回行为
-        // 如果 $configGetReturns 中没有指定某个键，则让它返回第二个参数（默认值）
+        // Set default return behavior for ConfigInterface::get
+        // If key is not specified in $configGetReturns, return second argument (default value)
         $this->mockConfig->shouldReceive('get')
-            ->with(Mockery::any(), Mockery::any()) // 匹配任何键和任何默认值
+            ->with(Mockery::any(), Mockery::any()) // Match any key and default value
             ->andReturnUsing(function ($key, $default) use ($configGetReturns) {
-                return $configGetReturns[$key] ?? $default; // 如果在测试中指定了返回值，则用它
+                return $configGetReturns[$key] ?? $default; // Use specified return value if set in test
             })
-            ->byDefault(); // 允许在具体测试中覆盖
+            ->byDefault(); // Allow override in specific tests
 
         return new PayloadFactory($this->mockConfig);
     }
 
     public function testConstructorInitializesPropertiesFromConfigWithDefaults(): void
     {
-        // 测试当配置中没有jwt.* 相关项时，是否使用了硬编码的默认值
-        // createPayloadFactory([]) 会使得所有 config->get 调用都返回其第二个参数(默认值)
+        // Test whether hardcoded defaults are used when no jwt.* entries exist in config
+        // createPayloadFactory([]) causes all config->get calls to return their second argument (default value)
         $factory = $this->createPayloadFactory([
-            // 模拟 ConfigInterface::get('jwt.ttl', 60) 返回 60 (第二个参数)
-            // 模拟 ConfigInterface::get('jwt.nbf_offset_seconds', 0) 返回 0 (第二个参数)
-            // ...等等
+            // Simulate ConfigInterface::get('jwt.ttl', 60) returning 60 (second parameter)
+            // Simulate ConfigInterface::get('jwt.nbf_offset_seconds', 0) returning 0 (second parameter)
+            // ...etc.
         ]);
 
         $this->assertEquals(60, $factory->getTtl());
         $this->assertEquals(0, $factory->getNbfOffsetSeconds());
-        $this->assertEquals('Hyperf App', $factory->getIssuer()); // 这是 PayloadFactory 构造函数中的默认值
-        $this->assertEquals('Hyperf App', $factory->getAudience()); // 同上
+        $this->assertEquals('Hyperf App', $factory->getIssuer()); // Default value in PayloadFactory constructor
+        $this->assertEquals('Hyperf App', $factory->getAudience()); // Same as above
     }
 
     public function testConstructorInitializesPropertiesFromConfigWithProvidedValues(): void
@@ -73,14 +73,14 @@ class PayloadFactoryTest extends TestCase
 
     public function testSetAndGetTtl(): void
     {
-        $factory = $this->createPayloadFactory(); // 使用默认配置构造
+        $factory = $this->createPayloadFactory(); // Construct with default config
         $factory->setTtl(90);
         $this->assertEquals(90, $factory->getTtl());
 
-        $factory->setTtl(0); // 测试边界，应至少为1
+        $factory->setTtl(0); // Test boundary, should be at least 1
         $this->assertEquals(1, $factory->getTtl());
 
-        $factory->setTtl(-10); // 测试负数，应至少为1
+        $factory->setTtl(-10); // Test negative number, should be at least 1
         $this->assertEquals(1, $factory->getTtl());
 
         // Test maximum TTL boundary (1 year)
@@ -99,10 +99,10 @@ class PayloadFactoryTest extends TestCase
         $factory->setRefreshTtl(30000);
         $this->assertEquals(30000, $factory->getRefreshTtl());
 
-        $factory->setRefreshTtl(0); // 测试边界，应至少为1
+        $factory->setRefreshTtl(0); // Test boundary, should be at least 1
         $this->assertEquals(1, $factory->getRefreshTtl());
 
-        $factory->setRefreshTtl(-10); // 测试负数，应至少为1
+        $factory->setRefreshTtl(-10); // Test negative number, should be at least 1
         $this->assertEquals(1, $factory->getRefreshTtl());
 
         // Test maximum refresh TTL boundary (2 years)
@@ -120,7 +120,7 @@ class PayloadFactoryTest extends TestCase
         $factory->setNbfOffsetSeconds(30);
         $this->assertEquals(30, $factory->getNbfOffsetSeconds());
 
-        $factory->setNbfOffsetSeconds(-5); // 允许负数，虽然实际意义不大
+        $factory->setNbfOffsetSeconds(-5); // Allow negative numbers, though not practically useful
         $this->assertEquals(-5, $factory->getNbfOffsetSeconds());
     }
 
@@ -145,7 +145,7 @@ class PayloadFactoryTest extends TestCase
     {
         $factory = $this->createPayloadFactory();
         $this->assertInstanceOf(DateTimeImmutable::class, $factory->getCurrentTime());
-        // 可以断言时间大致准确，但会有几毫秒误差
+        // Can assert time is roughly accurate with slight millisecond delta
         $this->assertEqualsWithDelta(time(), $factory->getCurrentTime()->getTimestamp(), 1.0);
     }
 
@@ -157,15 +157,15 @@ class PayloadFactoryTest extends TestCase
 
         $this->assertIsString($jti1);
         $this->assertNotEmpty($jti1);
-        $this->assertEquals(32, strlen($jti1)); // bin2hex(random_bytes(16)) 结果是32位十六进制字符
+        $this->assertEquals(32, strlen($jti1)); // bin2hex(random_bytes(16)) results in 32 hex characters
         $this->assertNotEquals($jti1, $jti2);
     }
 
     public function testGetClaimsToRefreshDefault(): void
     {
-        // 测试当配置中没有 'jwt.claims_to_refresh' 时，返回默认值
+        // Test returning defaults when 'jwt.claims_to_refresh' is not in config
         $factory = $this->createPayloadFactory([
-            'jwt.claims_to_refresh' => null, // 模拟配置中没有此项或为null
+            'jwt.claims_to_refresh' => null, // Simulate missing or null entry in config
         ]);
         $this->assertEquals(['iat', 'exp', 'nbf', 'jti'], $factory->getClaimsToRefresh());
     }
@@ -173,11 +173,11 @@ class PayloadFactoryTest extends TestCase
     public function testGetClaimsToRefreshWithUserConfig(): void
     {
         $factory = $this->createPayloadFactory([
-            'jwt.claims_to_refresh' => ['custom_claim1', 'iat'], // 用户配置，iat是重复的
+            'jwt.claims_to_refresh' => ['custom_claim1', 'iat'], // User config, iat is duplicated
         ]);
         $expected = ['iat', 'exp', 'nbf', 'jti', 'custom_claim1'];
         $actual = $factory->getClaimsToRefresh();
-        // 由于 array_unique 和 array_merge 的顺序问题，我们比较元素是否存在即可
+        // Compare elements exist regardless of array_unique and array_merge order
         sort($expected);
         sort($actual);
         $this->assertEquals($expected, $actual);
@@ -186,9 +186,9 @@ class PayloadFactoryTest extends TestCase
     public function testGetClaimsToRefreshWithEmptyUserConfig(): void
     {
         $factory = $this->createPayloadFactory([
-            'jwt.claims_to_refresh' => [], // 用户配置为空数组
+            'jwt.claims_to_refresh' => [], // User config is empty array
         ]);
-        // 即使配置为空，默认的 'iat', 'exp', 'nbf', 'jti' 应该还在
+        // Default 'iat', 'exp', 'nbf', 'jti' should still be present even if config is empty
         $this->assertEquals(['iat', 'exp', 'nbf', 'jti'], $factory->getClaimsToRefresh());
     }
 }

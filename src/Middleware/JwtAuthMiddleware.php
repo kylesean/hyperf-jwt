@@ -15,20 +15,20 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * JWT 认证中间件。
+ * JWT Auth Middleware.
  *
- * 从请求中解析 JWT Token 并存储到 Hyperf Context 和 Request Attribute 中，
- * 方便后续在 Controller 和其他组件中获取认证信息。
+ * From request, parse JWT Token and store it in Hyperf Context and Request Attribute,
+ * making it convenient to obtain authentication information in Controller and other components.
  */
 class JwtAuthMiddleware implements MiddlewareInterface
 {
     /**
-     * Hyperf Context 存储键名。
+     * Hyperf Context storage key name.
      */
     public const CONTEXT_KEY = 'jwt.token';
 
     /**
-     * PSR-7 Request Attribute 存储键名。
+     * PSR-7 Request Attribute storage key name.
      */
     public const ATTRIBUTE_KEY = 'jwt.token';
 
@@ -51,25 +51,25 @@ class JwtAuthMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
-        // 存储到 Hyperf 协程上下文（推荐方式，协程安全）
+        // Store in Hyperf Coroutine Context (recommended, coroutine-safe)
         Context::set(self::CONTEXT_KEY, $token);
 
-        // 同时存入 Request Attribute（PSR-7 兼容方式）
+        // Also store in Request Attribute (PSR-7 compatible)
         $request = $request->withAttribute(self::ATTRIBUTE_KEY, $token);
 
         return $handler->handle($request);
     }
 
     /**
-     * 静态辅助方法：从 Context 获取当前请求的 Token。
+     * Static helper method: Get the current request's Token from Context.
      *
-     * 使用示例：
+     * Usage example:
      * ```php
      * $token = JwtAuthMiddleware::getToken();
      * $userId = $token?->getSubject();
      * ```
      *
-     * @return TokenInterface|null 当前请求的 Token，如果未认证则返回 null
+     * @return TokenInterface|null The current request's Token, or null if not authenticated
      */
     public static function getToken(): ?TokenInterface
     {
@@ -77,9 +77,9 @@ class JwtAuthMiddleware implements MiddlewareInterface
     }
 
     /**
-     * 静态辅助方法：获取当前认证用户的主体标识（通常是用户 ID）。
+     * Static helper method: Get the current authenticated user's subject identifier (usually user ID).
      *
-     * @return string|null 用户主体标识，如果未认证则返回 null
+     * @return string|null User subject identifier, or null if not authenticated
      */
     public static function getSubject(): ?string
     {
@@ -87,10 +87,10 @@ class JwtAuthMiddleware implements MiddlewareInterface
     }
 
     /**
-     * 静态辅助方法：获取 Token 中指定的声明值。
+     * Static helper method: Get the value of the specified claim from the Token.
      *
-     * @param string $name 声明名称
-     * @return mixed|null 声明值，如果未认证或声明不存在则返回 null
+     * @param string $name Claim name
+     * @return mixed|null Claim value, or null if not authenticated or claim does not exist
      */
     public static function getClaim(string $name): mixed
     {

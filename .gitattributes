@@ -1,0 +1,14 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Distribution archive excludes
+/tests export-ignore
+/.github export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/.idea export-ignore
+/.phpunit.cache export-ignore
+/phpunit.xml.dist export-ignore
+/phpstan.neon.dist export-ignore
+/.php-cs-fixer.dist.php export-ignore
+/CHANGELOG.md export-ignore

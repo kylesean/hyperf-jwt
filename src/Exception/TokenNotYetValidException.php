@@ -7,14 +7,14 @@ namespace Kylesean\Jwt\Exception;
 /**
  * Class TokenNotYetValidException.
  *
- * 当 JWT 令牌的 'nbf' (Not Before) 声明指示令牌尚未生效时抛出。
- * 当前时间早于令牌允许使用的最早时间。
+ * Throws when the 'nbf' (Not Before) claim of the JWT token indicates that the token is not yet valid.
+ * The current time is earlier than the earliest time the token is allowed to be used.
  */
 class TokenNotYetValidException extends JwtException
 {
     /**
-     * 默认的异常消息。
+     * Default exception message.
      * @var string
      */
-    protected $message = 'Token is not yet valid.'; // 令牌尚未生效
+    protected $message = 'Token is not yet valid.';
 }

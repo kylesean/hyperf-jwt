@@ -9,7 +9,7 @@ use Hyperf\Stringable\Str;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Parses JWT from Authorization header (e.g., "Bearer <token>").
+ * Parse JWT from Authorization header (e.g., "Bearer <token>").
  */
 class AuthorizationHeader implements RequestParserInterface
 {

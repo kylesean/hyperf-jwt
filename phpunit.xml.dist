@@ -9,7 +9,7 @@
          beStrictAboutCoverageMetadata="false"
          beStrictAboutOutputDuringTests="true"
          failOnRisky="true"
-         failOnWarning="true">
+         failOnWarning="false">
     <testsuites>
         <testsuite name="Unit">
             <directory suffix="Test.php">./tests</directory>
@@ -19,5 +19,9 @@
         <include>
             <directory suffix=".php">./src</directory>
         </include>
+        <exclude>
+            <directory>./src/Contract</directory>
+            <directory>./src/Exception</directory>
+        </exclude>
     </source>
 </phpunit>

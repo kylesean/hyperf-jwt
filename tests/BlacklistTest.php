@@ -11,12 +11,12 @@ use Kylesean\Jwt\Contract\TokenInterface;
 use Hyperf\Contract\ConfigInterface;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\SimpleCache\CacheInterface; // CacheInterface 是 Blacklist 依赖的核心
-use Psr\Log\LoggerInterface; // Blacklist 内部使用
+use Psr\SimpleCache\CacheInterface; // Core dependency for Blacklist
+use Psr\Log\LoggerInterface; // Used internally by Blacklist
 
-#[CoversNothing]
+#[CoversClass(Blacklist::class)]
 class BlacklistTest extends TestCase
 {
     use MockeryPHPUnitIntegration;
@@ -37,10 +37,10 @@ class BlacklistTest extends TestCase
         $this->mockConfig = Mockery::mock(ConfigInterface::class);
         $this->mockCacheFactory = Mockery::mock(CacheFactory::class);
 
-        // 配置 CacheFactory mock 返回我们的 mockCache
+        // Configure CacheFactory mock to return our mockCache
         $this->mockCacheFactory->shouldReceive('get')->andReturn($this->mockCache)->byDefault();
 
-        // 配置 ConfigInterface mock 的默认返回值
+        // Configure ConfigInterface mock default return values
         $this->mockConfig->shouldReceive('get')
             ->with('jwt.blacklist_grace_period', 3600)
             ->andReturn($this->defaultGracePeriod)
@@ -65,7 +65,7 @@ class BlacklistTest extends TestCase
     }
 
     /**
-     * 辅助方法：生成与 Blacklist 实现一致的缓存键。
+     * Helper method: Generate cache key consistent with Blacklist implementation.
      */
     protected function getExpectedCacheKey(string $jti): string
     {
@@ -107,7 +107,7 @@ class BlacklistTest extends TestCase
     public function testAddTokenFailsIfNoJti(): void
     {
         $token = $this->createMockToken(null); // No JTI
-        $this->mockCache->shouldNotReceive('set'); // 不应该调用 set
+        $this->mockCache->shouldNotReceive('set'); // set should not be called
         $this->assertFalse($this->blacklist->add($token));
     }
 
@@ -166,11 +166,11 @@ class BlacklistTest extends TestCase
         $this->assertFalse($this->blacklist->remove($token));
     }
 
-    public function testClearMethodReturnsFalse(): void
+    public function testClearMethodThrowsException(): void
     {
-        // Blacklist::clear() 现在返回 false，表示操作不受支持
-        $this->mockCache->shouldNotReceive('clear');
-        $this->assertFalse($this->blacklist->clear());
+        $this->expectException(\Kylesean\Jwt\Exception\JwtException::class);
+        $this->expectExceptionMessage('Clearing the entire JWT blacklist is unsupported');
+        $this->blacklist->clear();
     }
 
     public function testSetAndGetDefaultGracePeriod(): void
@@ -192,7 +192,7 @@ class BlacklistTest extends TestCase
             ->with('jwt.blacklist_cache_prefix', 'jwt_blacklist_')
             ->andReturn($customPrefix);
 
-        // 重新创建 Blacklist 实例以使新的 config mock 生效
+        // Re-create Blacklist instance to apply new config mock
         $blacklistWithCustomPrefix = new Blacklist($this->mockCacheFactory, $this->mockConfig);
 
         $jti = 'test_jti_custom_prefix';
@@ -215,7 +215,7 @@ class BlacklistTest extends TestCase
         $expectedCacheKey = $this->getExpectedCacheKey($jti);
         $concurrencyGracePeriod = 30; // 30 seconds
 
-        // 1. 验证添加逻辑：存储的值为当前时间加上宽限秒数
+        // 1. Verify add logic: Stored value is current time plus grace period in seconds
         $this->mockCache->shouldReceive('get')->once()->with($expectedCacheKey)->andReturn(null);
         $this->mockCache->shouldReceive('set')
             ->once()
@@ -224,12 +224,12 @@ class BlacklistTest extends TestCase
 
         $this->assertTrue($this->blacklist->add($token, null, $concurrencyGracePeriod));
 
-        // 2. 验证 has 逻辑：如果在宽限期内，应该判定为未拉黑 (has 返回 false)
+        // 2. Verify has logic: If within grace period, should not be blacklisted (has returns false)
         $futureTimestamp = time() + 10;
         $this->mockCache->shouldReceive('get')->once()->with($expectedCacheKey)->andReturn($futureTimestamp);
         $this->assertFalse($this->blacklist->has($token));
 
-        // 3. 验证 has 逻辑：如果宽限期已过，应该判定为拉黑 (has 返回 true)
+        // 3. Verify has logic: If grace period passed, should be blacklisted (has returns true)
         $pastTimestamp = time() - 5;
         $this->mockCache->shouldReceive('get')->once()->with($expectedCacheKey)->andReturn($pastTimestamp);
         $this->assertTrue($this->blacklist->has($token));

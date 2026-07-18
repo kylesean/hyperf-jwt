@@ -8,7 +8,7 @@ use Kylesean\Jwt\Contract\RequestParser\RequestParserInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Parses JWT from URL query parameters.
+ * Parse JWT from URL query parameters.
  */
 class QueryString implements RequestParserInterface
 {

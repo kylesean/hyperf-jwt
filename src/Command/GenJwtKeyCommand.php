@@ -42,7 +42,7 @@ class GenJwtKeyCommand extends HyperfCommand
 
     protected function generateHmacSecret(string $algo): void
     {
-        // ... (HMAC 生成逻辑保持不变) ...
+       
         $length = 32;
         if ($algo === 'hs384') {
             $length = 48;
@@ -101,23 +101,23 @@ class GenJwtKeyCommand extends HyperfCommand
         $this->output->writeln(sprintf('Generating RSA-%d key pair for %s...', $bits, strtoupper($algo)));
 
         $config = [
-            "digest_alg" => match (strtoupper($algo)) { // 根据算法选择合适的摘要算法
+            "digest_alg" => match (strtoupper($algo)) { 
                 "RS384" => "sha384",
                 "RS512" => "sha512",
-                default => "sha256", // RS256
+                default => "sha256",
             },
             "private_key_bits" => $bits,
             "private_key_type" => OPENSSL_KEYTYPE_RSA,
         ];
 
-        // 生成密钥对
+        // generate rsa private key
         $privateKeyResource = openssl_pkey_new($config);
         if ($privateKeyResource === false) {
             $this->output->error('Failed to generate RSA private key: ' . openssl_error_string());
             return;
         }
 
-        // 导出私钥
+        // export rsa private key
         $privateKeyPem = '';
         $exportResult = $password
             ? openssl_pkey_export($privateKeyResource, $privateKeyPem, $password)
@@ -128,7 +128,7 @@ class GenJwtKeyCommand extends HyperfCommand
             return;
         }
 
-        // 获取公钥详情
+        // get rsa public key details
         $publicKeyDetails = openssl_pkey_get_details($privateKeyResource);
         if ($publicKeyDetails === false || !isset($publicKeyDetails['key'])) {
             $this->output->error('Failed to get RSA public key details: ' . openssl_error_string());
@@ -152,10 +152,10 @@ class GenJwtKeyCommand extends HyperfCommand
         $this->output->writeln(sprintf('Generating ECDSA key pair with curve %s for %s...', $curve, strtoupper($algo)));
 
         $config = [
-            "digest_alg" => match (strtoupper($algo)) { // 根据算法选择合适的摘要算法
+            "digest_alg" => match (strtoupper($algo)) { 
                 "ES384" => "sha384",
                 "ES512" => "sha512",
-                default => "sha256", // ES256
+                default => "sha256",
             },
             "private_key_type" => OPENSSL_KEYTYPE_EC,
             "curve_name" => $curve,
@@ -167,23 +167,22 @@ class GenJwtKeyCommand extends HyperfCommand
             return;
         }
 
-        // 导出私钥 (ECDSA 私钥导出通常不直接在 openssl_pkey_export 中使用密码参数进行 PKCS#1 加密，而是导出为 PKCS#8 格式再加密)
-        // 我们先导出未加密的 PKCS#8，如果需要加密，再进行一次转换
+        // export ecdsa private key
         $privateKeyPemUnencrypted = '';
-        if (!openssl_pkey_export($privateKeyResource, $privateKeyPemUnencrypted)) { // 先导出未加密的
+        if (!openssl_pkey_export($privateKeyResource, $privateKeyPemUnencrypted)) { 
             $this->output->error('Failed to export ECDSA private key (initial export): ' . openssl_error_string());
             return;
         }
 
-        $privateKeyPem = $privateKeyPemUnencrypted; // 默认使用未加密的
+        $privateKeyPem = $privateKeyPemUnencrypted; // default use unencrypted
 
         if ($password) {
-            // 如果需要密码，将未加密的 PKCS#8 私钥用密码加密
-            // Lcobucci/jwt 的 InMemory::file/plainText 期望的是 PKCS#1 (RSA) 或 PKCS#8 (EC) 加密格式
-            // openssl_pkey_export 导出的 EC 私钥已经是 PKCS#8 格式（如果 OpenSSL 版本较新）
+            // If you need a password, encrypt the unencrypted PKCS#8 private key with the password
+            // Lcobucci/jwt's InMemory::file/plainText expects PKCS#1 (RSA) or PKCS#8 (EC) encrypted format
+            // openssl_pkey_export exports the EC private key in PKCS#8 format (if OpenSSL version is newer)
             $this->output->writeln("It's highly recommended to secure the unencrypted private key file with strict file permissions, or encrypt it manually using OpenSSL tools if password protection is required for the key file itself.");
             $this->output->writeln("Example: openssl ec -in <unencrypted_private_key.pem> -out <encrypted_private_key.pem> -aes256 -passout pass:your_password");
-            $password = null; // 重置password变量，因为我们没实际用它加密EC私钥
+            $password = null; // reset password variable because we didn't actually use it to encrypt EC private key
         }
 
 
@@ -213,11 +212,11 @@ class GenJwtKeyCommand extends HyperfCommand
         $this->output->writeln('Please configure these in your <comment>jwt.php</comment> config or <comment>.env</comment> file:');
         $this->output->writeln('');
         $this->output->writeln("<info>// In config/autoload/jwt.php or your .env file:</info>");
-        $signerClass = $algoOptionValue; // 直接使用用户输入的 --algo 值
-        if (!class_exists($signerClass)) { // 如果用户输入的是简写，尝试构建
+        $signerClass = $algoOptionValue; // directly use the --algo value entered by the user
+        if (!class_exists($signerClass)) { // if the user enters a shorthand, try to build it
             $algoShort = str_replace(['rs', 'es'], '', strtolower($algoNameForDisplay)); // 256, 384, 512
             $algoFamily = substr(strtolower($algoNameForDisplay), 0, 2); // rs, es
-            // 修正类名构造
+            // fix class name construction
             $signerClass = '\\Lcobucci\\JWT\\Signer\\' . ucfirst($algoFamily === 'rs' ? 'Rsa' : 'Ecdsa') . '\\Sha' . $algoShort;
         }
         $this->output->writeln("<info>'algo' => {$signerClass}::class,</info>");
@@ -239,7 +238,7 @@ class GenJwtKeyCommand extends HyperfCommand
         $this->output->writeln('');
         $this->output->writeln("Or, use 'file:///path/to/your/key.pem' for key paths.");
 
-        // 尝试写入文件 (可选)
+        // Try to write file (optional)
         $privateKeyFile = $this->input->getOption('output-private-key');
         $publicKeyFile = $this->input->getOption('output-public-key');
 
@@ -260,7 +259,7 @@ class GenJwtKeyCommand extends HyperfCommand
     }
 
     /**
-     * 尝试更新 .env 文件中的指定键值。
+     * Try to update the specified key value in the .env file.
      */
     protected function updateEnvFile(string $keyName, string $keyValue): void
     {
@@ -297,7 +296,7 @@ class GenJwtKeyCommand extends HyperfCommand
 
     protected function configure(): void
     {
-        parent::configure(); // 调用父类的 configure
+        parent::configure();
         $this->addOption('algo', 'a', InputOption::VALUE_OPTIONAL, 'The signing algorithm (e.g., HS256, RS256, ES256, or full class name). Default: HS256.', 'HS256');
         $this->addOption('update-env', null, InputOption::VALUE_NONE, 'Attempt to update the .env file automatically (for HMAC secret).');
 

@@ -9,10 +9,8 @@ use Psr\Container\ContainerInterface;
 use Psr\SimpleCache\CacheInterface;
 use Hyperf\Cache\CacheManager;
 
-// Hyperf 核心的缓存管理器
 use Kylesean\Jwt\Exception\JwtException;
 
-// 引入我们定义的异常基类
 
 
 
@@ -28,11 +26,11 @@ class CacheFactory
     }
 
     /**
-     * 获取配置的 PSR-16 缓存驱动实例。
+     * Get cache driver instance.
      *
-     * @param string|null $cacheDriverName 缓存驱动的名称。如果为 null，则从 jwt.php 配置中读取。
+     * @param string|null $cacheDriverName cache driver name, if null, read from jwt.php config
      * @return CacheInterface
-     * @throws JwtException 如果无法获取 CacheManager 或指定的缓存驱动不存在。
+     * @throws JwtException if CacheManager is not available or cache driver does not exist
      */
     public function get(?string $cacheDriverName = null): CacheInterface
     {
@@ -44,10 +42,9 @@ class CacheFactory
         $cacheManager = $this->container->get(CacheManager::class);
 
         try {
-            // CacheManager::getDriver() 会返回一个实现了 CacheInterface (PSR-16) 的实例
+            // CacheManager::getDriver() returns an instance that implements CacheInterface (PSR-16)
             return $cacheManager->getDriver($driverName);
         } catch (\Throwable $e) {
-            // 捕获底层的异常，例如驱动配置错误
             throw new JwtException(sprintf('Failed to get cache driver "%s": %s', $driverName, $e->getMessage()), (int)$e->getCode(), $e);
         }
     }

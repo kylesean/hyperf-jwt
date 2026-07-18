@@ -6,137 +6,172 @@ namespace Kylesean\Jwt\Contract;
 
 use Kylesean\Jwt\Contract\RequestParser\RequestParserFactoryInterface;
 use Kylesean\Jwt\Contract\TokenInterface;
-use Lcobucci\JWT\Configuration as LcobucciConfiguration; // 底层库配置
-use Lcobucci\JWT\Signer; // 底层库签名器
+use Lcobucci\JWT\Configuration as LcobucciConfiguration;
+use Lcobucci\JWT\Signer;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Interface ManagerInterface.
  *
- * JWT 管理器的核心接口，负责令牌的生命周期管理。
+ * Core interface for the JWT manager, responsible for managing the token lifecycle.
  */
 interface ManagerInterface
 {
     /**
-     * 根据给定的载荷 (payload) 创建一个新的 JWT 令牌。
+     * Create a new JWT token with the given payload.
      *
-     * @param array<string, mixed> $customClaims 要包含在 JWT 中的自定义声明
-     * @return TokenInterface 创建的令牌对象
-     * @throws \Kylesean\Jwt\Exception\JwtException 如果创建令牌失败
+     * @param array<string, mixed> $customClaims Custom claims to include in the JWT
+     * @param mixed $subject Optional subject claim value
+     * @return TokenInterface The created token object
+     * @throws \Kylesean\Jwt\Exception\JwtException If token creation fails
      */
     public function issueToken(array $customClaims = [], mixed $subject = null): TokenInterface;
 
     /**
-     * 从给定的 JWT 字符串解析并验证令牌。
+     * Parse and validate a token from the given JWT string.
      *
-     * @param string $jwtString JWT 字符串
-     * @return TokenInterface|null 解析并验证通过的令牌对象，如果无效则返回 null 或抛出异常（取决于实现）
-     * @throws \Kylesean\Jwt\Exception\TokenInvalidException 如果令牌无效
-     * @throws \Kylesean\Jwt\Exception\TokenExpiredException 如果令牌已过期
-     * @throws \Kylesean\Jwt\Exception\TokenNotYetValidException 如果令牌尚未生效
+     * @param string $jwtString The JWT string
+     * @return TokenInterface|null The parsed and validated token object, or null if invalid depending on implementation
+     * @throws \Kylesean\Jwt\Exception\TokenInvalidException If the token is invalid
+     * @throws \Kylesean\Jwt\Exception\TokenExpiredException If the token is expired
+     * @throws \Kylesean\Jwt\Exception\TokenNotYetValidException If the token is not yet valid
      */
     public function parse(string $jwtString): ?TokenInterface;
 
     /**
-     * 尝试从当前的 HTTP 请求中解析并验证令牌。
-     * 它会使用配置的 RequestParser 链来尝试提取令牌。
+     * Attempt to parse and validate a token from the current HTTP request.
+     * It uses the configured RequestParser chain to extract the token.
      *
-     * @param ServerRequestInterface|null $request PSR-7 请求对象。如果为 null，则尝试从容器中获取当前请求。
-     * @return TokenInterface|null 如果成功解析并验证令牌，则返回令牌对象；否则返回 null。
+     * @param ServerRequestInterface|null $request PSR-7 request object. If null, attempts to fetch current request from container.
+     * @return TokenInterface|null The token object if successfully parsed and validated, null otherwise.
      */
     public function parseTokenFromRequest(?ServerRequestInterface $request = null): ?TokenInterface;
 
     /**
-     * 刷新一个现有的（可能已过期的，但在刷新期内的）JWT。
+     * Refresh an existing (possibly expired, but within refresh period) JWT.
      *
-     * @param string $oldTokenString 要刷新的令牌
-     * @param bool $forceForever 如果为 true，则强制将新令牌加入黑名单，即使原令牌未设置 jti。
-     *                           这通常用于刷新后立即让旧令牌失效的场景。
-     * @param bool $resetClaims 如果为 true，则新令牌的载荷将基于新的默认值，而不是从旧令牌复制。
-     *                          自定义载荷仍需通过额外参数或配置传递。
-     * @return TokenInterface 新的 JWT 令牌对象
-     * @throws \Kylesean\Jwt\Exception\JwtException 如果刷新失败（例如，原令牌不在刷新期内或已彻底失效）
-     * @throws \Kylesean\Jwt\Exception\TokenInvalidException 如果原令牌无法被加入黑名单（当需要时）
+     * @param string $oldTokenString The token string to refresh
+     * @param bool $forceForever If true, forces adding the old token to the blacklist even if it lacks a jti claim.
+     *                           This is typically used when immediately invalidating the old token upon refresh.
+     * @param bool $resetClaims If true, the new token payload will be based on new defaults rather than copied from the old token.
+     *                          Custom claims must still be passed via extra parameters or configuration.
+     * @return TokenInterface The new JWT token object
+     * @throws \Kylesean\Jwt\Exception\JwtException If refresh fails (e.g., old token is outside refresh window or completely invalid)
+     * @throws \Kylesean\Jwt\Exception\TokenInvalidException If the old token cannot be blacklisted when required
      */
     public function refreshToken(string $oldTokenString, bool $forceForever = false, bool $resetClaims = false): TokenInterface;
 
     /**
-     * 使一个 JWT 失效（将其加入黑名单）。
+     * Invalidate a JWT by adding it to the blacklist.
      *
-     * @param TokenInterface $token 要失效的令牌
-     * @param bool $forceForever 如果为 true，则即使令牌没有 'jti' 声明，也尝试基于其他方式（可能不太可靠）加入黑名单，
-     *                           或者如果黑名单配置为永久存储。
+     * @param TokenInterface $token The token to invalidate
+     * @param bool $forceForever If true, attempts to blacklist based on fallback mechanisms even if token lacks a 'jti' claim,
+     *                           or if the blacklist is configured for permanent storage.
      * @return $this
-     * @throws \Kylesean\Jwt\Exception\JwtException 如果令牌无法被加入黑名单
+     * @throws \Kylesean\Jwt\Exception\JwtException If the token cannot be blacklisted
      */
     public function invalidate(TokenInterface $token, bool $forceForever = false): self;
 
     /**
-     * 获取 JWT 验证器实例。
+     * Get the JWT validator instance.
+     *
+     * @return ValidatorInterface
      */
     public function getValidator(): ValidatorInterface;
 
     /**
-     * 设置 JWT 验证器实例。
+     * Set the JWT validator instance.
+     *
+     * @param ValidatorInterface $validator
      * @return $this
      */
     public function setValidator(ValidatorInterface $validator): self;
 
     /**
-     * 获取 JWT 黑名单实例。
+     * Get the JWT blacklist instance.
+     *
+     * @return BlacklistInterface
      */
     public function getBlacklist(): BlacklistInterface;
 
     /**
-     * 设置 JWT 黑名单实例。
+     * Set the JWT blacklist instance.
+     *
+     * @param BlacklistInterface $blacklist
      * @return $this
      */
     public function setBlacklist(BlacklistInterface $blacklist): self;
 
     /**
-     * 获取请求解析器工厂实例。
+     * Get the request parser factory instance.
+     *
+     * @return RequestParserFactoryInterface
      */
     public function getRequestParserFactory(): RequestParserFactoryInterface;
 
     /**
-     * 设置请求解析器工厂实例。
+     * Set the request parser factory instance.
+     *
+     * @param RequestParserFactoryInterface $requestParserFactory
      * @return $this
      */
     public function setRequestParserFactory(RequestParserFactoryInterface $requestParserFactory): self;
 
     /**
-     * 获取底层的 lcobucci/jwt Configuration 对象。
-     * 这允许高级用户直接访问和操作 JWT 的配置。
+     * Get the underlying lcobucci/jwt Configuration object.
+     * This allows advanced users to access and manipulate JWT configuration directly.
+     *
+     * @return LcobucciConfiguration
      */
     public function getLcobucciConfig(): LcobucciConfiguration;
 
+    /**
+     * Get the payload factory instance.
+     *
+     * @return PayloadFactoryInterface
+     */
     public function getPayloadFactory(): PayloadFactoryInterface;
 
+    /**
+     * Set the payload factory instance.
+     *
+     * @param PayloadFactoryInterface $payloadFactory
+     * @return $this
+     */
     public function setPayloadFactory(PayloadFactoryInterface $payloadFactory): self;
 
     /**
-     * 获取用于生成和验证令牌的签名器。
+     * Get the signer used for generating and verifying tokens.
+     *
+     * @return Signer
      */
     public function getSigner(): Signer;
 
     /**
-     * 设置令牌的有效期（Time To Live），单位为分钟。
+     * Set the token time-to-live (TTL) in minutes.
+     *
+     * @param int $ttl Time-to-live in minutes
      * @return $this
      */
     public function setTtl(int $ttl): self;
 
     /**
-     * 获取令牌的有效期（Time To Live），单位为分钟。
+     * Get the token time-to-live (TTL) in minutes.
+     *
+     * @return int
      */
     public function getTtl(): int;
 
     /**
-     * 获取令牌的刷新期（Refresh Time To Live），单位为分钟。
+     * Get the token refresh time-to-live (Refresh TTL) in minutes.
+     *
+     * @return int
      */
     public function getRefreshTtl(): int;
 
     /**
-     * 获取subject_claim key
+     * Get the subject claim key name.
+     *
      * @return string
      */
     public function getSubjectClaimKey(): string;

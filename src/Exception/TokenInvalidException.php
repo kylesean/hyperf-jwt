@@ -7,23 +7,23 @@ namespace Kylesean\Jwt\Exception;
 /**
  * Class TokenInvalidException.
  *
- * 当 JWT 令牌被视为无效时抛出。
- * 这可能是由于多种原因，例如：
- * - 令牌格式不正确
- * - 签名验证失败（通常由底层库处理，但也可能在此层面进一步检查）
- * - 必需的声明缺失
- * - 声明的值不符合预期
- * - 令牌已被列入黑名单（如果我们在此处也处理黑名单检查的抛出）
+ * Throws when the JWT token is considered invalid.
+ * This may be due to several reasons, such as:
+ * - The token format is incorrect
+ * - Signature verification failed (usually handled by the underlying library, but may be further checked at this level)
+ * - A required claim is missing
+ * - The value of a claim does not meet expectations
+ * - The token has been blacklisted (if we also handle the exception thrown by the blacklist check here)
  */
 class TokenInvalidException extends JwtException
 {
     /**
-     * 默认的异常消息。
+     * Default exception message.
      * @var string
      */
-    protected $message = 'Token is invalid.'; // 令牌无效
+    protected $message = 'Token is invalid.';
 
-    // 你可以根据需要添加构造函数来允许自定义消息或传递更多上下文信息
+    // You can add a constructor to allow custom messages or pass more contextual information if needed
     // public function __construct($message = "", $code = 0, \Throwable $previous = null)
     // {
     //     parent::__construct($message ?: $this->message, $code, $previous);

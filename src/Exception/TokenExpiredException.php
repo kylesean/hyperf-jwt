@@ -7,13 +7,13 @@ namespace Kylesean\Jwt\Exception;
 /**
  * Class TokenExpiredException.
  *
- * 当 JWT 令牌的 'exp' (Expiration Time) 声明指示令牌已过期时抛出。
+ * Throws when the 'exp' (Expiration Time) claim of the JWT token indicates that the token has expired.
  */
 class TokenExpiredException extends JwtException
 {
     /**
-     * 默认的异常消息。
+     * Default exception message.
      * @var string
      */
-    protected $message = 'Token has expired.'; // 令牌已过期
+    protected $message = 'Token has expired.';
 }

@@ -7,11 +7,11 @@ namespace Kylesean\Jwt\Tests\RequestParser;
 use Kylesean\Jwt\RequestParser\AuthorizationHeader;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 
-#[CoversNothing]
+#[CoversClass(AuthorizationHeader::class)]
 class AuthorizationHeaderTest extends TestCase
 {
     use MockeryPHPUnitIntegration;
@@ -20,7 +20,7 @@ class AuthorizationHeaderTest extends TestCase
     {
         $request = Mockery::mock(ServerRequestInterface::class);
         if ($headerValue === null) {
-            // getHeaderLine 期望在头部不存在时返回空字符串
+            // getHeaderLine expects to return an empty string when the header does not exist
             $request->shouldReceive('getHeaderLine')->with($headerName)->andReturn('')->byDefault();
         } else {
             $request->shouldReceive('getHeaderLine')->with($headerName)->andReturn($headerValue)->byDefault();
@@ -30,7 +30,7 @@ class AuthorizationHeaderTest extends TestCase
 
     public function testParseWithValidBearerToken(): void
     {
-        $parser = new AuthorizationHeader(); // 使用默认前缀 "Bearer" 和头部名 "Authorization"
+        $parser = new AuthorizationHeader(); // Uses default prefix "Bearer" and header name "Authorization"
         $request = $this->createRequestWithHeader('Authorization', 'Bearer my_jwt_token');
         $this->assertEquals('my_jwt_token', $parser->parse($request));
     }
@@ -45,7 +45,7 @@ class AuthorizationHeaderTest extends TestCase
     public function testParseMissingHeader(): void
     {
         $parser = new AuthorizationHeader();
-        $request = $this->createRequestWithHeader('Authorization', null); // 模拟头部不存在
+        $request = $this->createRequestWithHeader('Authorization', null); // Simulate missing header
         $this->assertNull($parser->parse($request));
     }
 
@@ -66,16 +66,16 @@ class AuthorizationHeaderTest extends TestCase
     public function testParseHeaderWithPrefixButNoToken(): void
     {
         $parser = new AuthorizationHeader();
-        $request = $this->createRequestWithHeader('Authorization', 'Bearer '); // 前缀后为空格，但没有token
-        $this->assertNull($parser->parse($request)); // 我们的实现会提取空字符串，然后判断为空返回null
+        $request = $this->createRequestWithHeader('Authorization', 'Bearer '); // Trailing space after prefix, but no token
+        $this->assertNull($parser->parse($request)); // Our implementation extracts an empty string, then returns null for empty value
 
-        $requestNoSpace = $this->createRequestWithHeader('Authorization', 'Bearer'); // 只有前缀
+        $requestNoSpace = $this->createRequestWithHeader('Authorization', 'Bearer'); // Prefix only
         $this->assertNull($parser->parse($requestNoSpace));
     }
 
     public function testParseHeaderWithPrefixAndTokenButNoSpace(): void
     {
-        // 当前 AuthorizationHeader 的实现要求前缀后有空格 "Bearer <token>"
+        // Current AuthorizationHeader implementation requires space after prefix "Bearer <token>"
         $parser = new AuthorizationHeader();
         $request = $this->createRequestWithHeader('Authorization', 'Bearer_my_jwt_token');
         $this->assertNull($parser->parse($request));

@@ -8,7 +8,6 @@ use Kylesean\Jwt\Contract\RequestParser\RequestParserFactoryInterface;
 use Kylesean\Jwt\Contract\RequestParser\RequestParserInterface;
 use Hyperf\Contract\ConfigInterface;
 use Psr\Container\ContainerInterface;
-// 引入我们已创建的解析器类，以便在默认配置中使用
 use Kylesean\Jwt\RequestParser\AuthorizationHeader;
 use Kylesean\Jwt\RequestParser\QueryString;
 use Kylesean\Jwt\RequestParser\InputSource;
@@ -19,20 +18,20 @@ class RequestParserFactory implements RequestParserFactoryInterface
     protected ContainerInterface $container;
 
     /**
-     * 存储解析器的原始配置。
+     * save parser config
      * @var array<int, string|array<string, mixed>|RequestParserInterface>
      */
     protected array $parsersConfig = [];
 
     /**
-     * 缓存已实例化的解析器链。
+     * save parser chain cache
      * @var RequestParserInterface[]|null
      */
     protected ?array $parserChainCache = null;
 
     /**
-     * 默认的解析器配置。
-     * 如果用户没有在 jwt.php 中配置 token_parsers，则使用此配置。
+     * save default parser config
+     * if user not config token_parsers in jwt.php, use this config
      * @var array<int, class-string<RequestParserInterface>>
      */
     protected array $defaultParserConfigs = [
@@ -43,34 +42,34 @@ class RequestParserFactory implements RequestParserFactoryInterface
     ];
 
     /**
-     * 构造函数。
      *
-     * @param ContainerInterface $container PSR-11 依赖注入容器
-     * @param ConfigInterface $config Hyperf 配置接口，用于获取包配置
+     * @param ContainerInterface $container
+     * @param ConfigInterface $config
      */
     public function __construct(ContainerInterface $container, ConfigInterface $config)
     {
         $this->container = $container;
-        // 从 jwt.php 配置文件中获取 'token_parsers'，如果未定义则使用默认配置
+        // get token_parsers from jwt.php config, if not found, use default config
         $userParserConfigs = $config->get('jwt.token_parsers', $this->defaultParserConfigs);
         $this->setParsersConfig($userParserConfigs);
     }
 
     /**
-     * 设置要使用的解析器配置。
+     * set parser config
      *
-     * @param array<int, string|array<string, mixed>|RequestParserInterface> $parsersConfig 解析器配置数组
+     * @param array<int, string|array<string, mixed>|RequestParserInterface> $parsersConfig parser config array
      * @return $this
      */
     public function setParsersConfig(array $parsersConfig): self
     {
         $this->parsersConfig = $parsersConfig;
-        $this->parserChainCache = null; // 配置更改时，清除缓存的解析器链
+        // clear cache when config change
+        $this->parserChainCache = null;
         return $this;
     }
 
     /**
-     * 获取配置的请求解析器链。
+     * get parser chain
      *
      * @return RequestParserInterface[]
      */
@@ -86,9 +85,9 @@ class RequestParserFactory implements RequestParserFactoryInterface
             if ($parser instanceof RequestParserInterface) {
                 $chain[] = $parser;
             }
-            // 你可以在此处添加日志记录，如果 createParser 返回 null，说明配置项有问题
+            // log if createParser return null
             // else {
-            //     // 例如：$this->container->get(LoggerInterface::class)->warning("Invalid parser configuration: " . json_encode($configItem));
+            //     // e.g., $this->container->get(LoggerInterface::class)->warning("Invalid parser configuration: " . json_encode($configItem));
             // }
         }
         $this->parserChainCache = $chain;
@@ -96,27 +95,27 @@ class RequestParserFactory implements RequestParserFactoryInterface
     }
 
     /**
-     * 根据给定的解析器类名或配置数组，创建一个解析器实例。
+     * create parser instance by parser config
      *
-     * @param string|array<mixed>|RequestParserInterface $parserConfig 解析器的类名，配置数组，或已实例化的对象。
-     *        配置数组格式可以是:
-     *        - ClassName::class (字符串)
-     *        - [ClassName::class] (单元素数组)
-     *        - [ClassName::class, ['option_key' => 'value', ...]] (元组风格)
-     *        - ['class' => ClassName::class, 'options' => ['option_key' => 'value', ...]] (映射风格)
-     * @return RequestParserInterface|null 如果无法创建解析器则返回 null。
+     * @param string|array<mixed>|RequestParserInterface $parserConfig parser config
+     *        parser config format:
+     *        - ClassName::class (string)
+     *        - [ClassName::class] (array)
+     *        - [ClassName::class, ['option_key' => 'value', ...]] (tuple style)
+     *        - ['class' => ClassName::class, 'options' => ['option_key' => 'value', ...]] (map style)
+     * @return RequestParserInterface|null if create parser failed return null
      */
     public function createParser(string|array|RequestParserInterface $parserConfig): ?RequestParserInterface
     {
         if ($parserConfig instanceof RequestParserInterface) {
-            return $parserConfig; // 如果已经是实例，直接返回
+            return $parserConfig; // if already an instance, return it directly
         }
 
         $className = null;
         $options = [];
 
         if (is_string($parserConfig)) {
-            // Case 1: 直接是类名字符串
+            // Case 1: string
             $className = $parserConfig;
         } elseif (is_array($parserConfig)) {
             if (empty($parserConfig)) {
@@ -124,14 +123,14 @@ class RequestParserFactory implements RequestParserFactoryInterface
                 return null;
             }
 
-            // Case 2: 元组风格 [ClassName::class, $optionsArray] 或 [ClassName::class]
-            // 检查数组第一个元素是否为字符串（类名）
+            // Case 2: tuple style [ClassName::class, $optionsArray] or [ClassName::class]
+            // check first element is string (class name)
             if (isset($parserConfig[0]) && is_string($parserConfig[0])) {
                 $className = $parserConfig[0];
-                // 如果有第二个元素且是数组，则将其作为选项
+                // if second element is array, use it as options
                 $options = (isset($parserConfig[1]) && is_array($parserConfig[1])) ? $parserConfig[1] : [];
             }
-            // Case 3: 映射风格 ['class' => ClassName::class, 'options' => $optionsArray]
+            // Case 3: map style ['class' => ClassName::class, 'options' => $optionsArray]
             elseif (isset($parserConfig['class']) && is_string($parserConfig['class'])) {
                 $className = $parserConfig['class'];
                 $options = (isset($parserConfig['options']) && is_array($parserConfig['options'])) ? $parserConfig['options'] : [];
@@ -149,19 +148,19 @@ class RequestParserFactory implements RequestParserFactoryInterface
             return null;
         }
 
-        // 确保类实现了正确的接口
+        // check class implements RequestParserInterface
         if (!is_subclass_of($className, RequestParserInterface::class)) {
             // logging: "Parser class '{$className}' must implement " . RequestParserInterface::class
             return null;
         }
 
         try {
-            // 使用 Hyperf DI 容器创建实例，允许通过 $options 传递构造函数参数
-            // Hyperf 的容器可以根据参数名匹配 $options 数组中的键值对
+            // use Hyperf DI container to create instance, allow to pass $options as constructor arguments
+            // Hyperf container can match $options array keys with constructor argument names
             return $this->container->make($className, $options);
         } catch (\Throwable $e) {
             // logging: "Failed to create parser '{$className}': " . $e->getMessage()
-            // 在生产环境中，应该记录这个错误 $e
+            // in production environment, should log this error $e
             return null;
         }
     }

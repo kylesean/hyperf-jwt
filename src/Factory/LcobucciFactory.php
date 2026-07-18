@@ -17,7 +17,7 @@ class LcobucciFactory
     {
         $config = $container->get(ConfigInterface::class);
 
-        // 1. 检查是否有自定义的映射或工厂
+        // 1. Check if there is a custom Lcobucci Factory
         $customFactory = $config->get('jwt.lcobucci_config_factory');
         if ($customFactory) {
             if (is_callable($customFactory)) {
@@ -29,7 +29,7 @@ class LcobucciFactory
             throw new JwtException('Invalid jwt.lcobucci_config_factory configuration.');
         }
 
-        // 2. 自动构建 Configuration
+        // 2. Auto build Lcobucci Configuration
         $algoClass = $config->get('jwt.algo', Signer\Hmac\Sha256::class);
         if (!class_exists($algoClass) || !is_subclass_of($algoClass, Signer::class)) {
             throw new JwtException("Invalid JWT algorithm class: {$algoClass}");

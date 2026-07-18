@@ -7,11 +7,11 @@ namespace Kylesean\Jwt\Tests\RequestParser;
 use Kylesean\Jwt\RequestParser\QueryString;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 
-#[CoversNothing]
+#[CoversClass(QueryString::class)]
 class QueryStringTest extends TestCase
 {
     use MockeryPHPUnitIntegration;
@@ -25,7 +25,7 @@ class QueryStringTest extends TestCase
 
     public function testParseWithValidTokenInQuery(): void
     {
-        $parser = new QueryString(); // 默认参数名 "token"
+        $parser = new QueryString(); // Default parameter name "token"
         $request = $this->createRequestWithQueryParams(['token' => 'my_jwt_from_query']);
         $this->assertEquals('my_jwt_from_query', $parser->parse($request));
     }
@@ -51,7 +51,7 @@ class QueryStringTest extends TestCase
         $this->assertNull($parser->parse($request));
 
         $requestSpaced = $this->createRequestWithQueryParams(['token' => '  ']);
-        $this->assertNull($parser->parse($requestSpaced)); // trim会处理掉空格
+        $this->assertNull($parser->parse($requestSpaced)); // trim will handle whitespace
     }
 
     public function testParseWithTokenInQueryAmongOtherParams(): void

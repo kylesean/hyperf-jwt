@@ -13,12 +13,12 @@ use Kylesean\Jwt\RequestParser\RequestParserFactory;
 use Hyperf\Contract\ConfigInterface;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use stdClass;
 
-#[CoversNothing]
+#[CoversClass(RequestParserFactory::class)]
 class RequestParserFactoryTest extends TestCase
 {
     use MockeryPHPUnitIntegration;
@@ -33,33 +33,33 @@ class RequestParserFactoryTest extends TestCase
         $this->mockConfig = Mockery::mock(ConfigInterface::class);
     }
 
-    // 辅助方法：创建一个 RequestParserFactory 实例
+    // Helper method: Create a RequestParserFactory instance
     protected function createFactory(?array $tokenParsersConfigFromTest = null): RequestParserFactory
     {
-        // 如果 $tokenParsersConfigFromTest 为 null，表示我们想测试 Factory 使用其内部默认值的情况。
-        // 此时，我们模拟 ConfigInterface::get('jwt.token_parsers', $defaultValue) 的行为是：
-        // 配置项 'jwt.token_parsers' 未找到，因此它应该返回传递给它的 $defaultValue。
-        // 而在 Factory 的构造函数中，这个 $defaultValue 就是 $this->defaultParserConfigs。
+        // If $tokenParsersConfigFromTest is null, we test Factory using its internal defaults.
+        // We simulate ConfigInterface::get('jwt.token_parsers', $defaultValue) behavior:
+        // Config key 'jwt.token_parsers' is not found, so it returns the passed $defaultValue.
+        // In the Factory constructor, this $defaultValue is $this->defaultParserConfigs.
 
-        // 如果 $tokenParsersConfigFromTest 不为 null，表示我们想测试用户提供了具体配置的情况。
-        // 此时，ConfigInterface::get('jwt.token_parsers', ...) 应该返回这个 $tokenParsersConfigFromTest。
+        // If $tokenParsersConfigFromTest is not null, we test when the user provides specific config.
+        // In this case, ConfigInterface::get('jwt.token_parsers', ...) returns $tokenParsersConfigFromTest.
 
         $this->mockConfig->shouldReceive('get')
             ->with('jwt.token_parsers', Mockery::on(function ($defaultValueArgument) {
-                // 这个 Mockery::on 用于确保第二个参数 (默认值) 被正确传递给了 get 方法
-                // 并且在我们的测试中，这个默认值参数就是 Factory 内部的 $this->defaultParserConfigs
-                return is_array($defaultValueArgument); // 简单检查它是个数组
+                // This Mockery::on ensures the second argument (default value) is passed correctly to get()
+                // In our tests, this default parameter is the internal $this->defaultParserConfigs
+                return is_array($defaultValueArgument); // Simple check for array
             }))
             ->andReturnUsing(function (string $key, $defaultValuePassedToGet) use ($tokenParsersConfigFromTest) {
                 if ($tokenParsersConfigFromTest !== null) {
-                    // 如果测试用例提供了具体的配置，则返回它
+                    // If test case provides specific config, return it
                     return $tokenParsersConfigFromTest;
                 }
-                // 否则，模拟配置项未找到，返回传递给 get() 的默认值
-                // （在 Factory 中，这个默认值是 $this->defaultParserConfigs）
+                // Otherwise simulate config key not found, returning default passed to get()
+                // (In Factory, this default is $this->defaultParserConfigs)
                 return $defaultValuePassedToGet;
             })
-            ->byDefault(); // byDefault 允许后续的 shouldReceive 在特定测试中覆盖
+            ->byDefault(); // byDefault allows subsequent shouldReceive to override in specific tests
 
         return new RequestParserFactory($this->mockContainer, $this->mockConfig);
     }
@@ -67,9 +67,9 @@ class RequestParserFactoryTest extends TestCase
 
     public function testGetParserChainWithDefaultConfiguration(): void
     {
-        $factory = $this->createFactory(null); // 使用默认配置
+        $factory = $this->createFactory(null); // Use default config
 
-        // 模拟容器的 make 方法行为
+        // Mock container make method behavior
         $this->mockContainer->shouldReceive('make')->with(AuthorizationHeader::class, [])->andReturn(new AuthorizationHeader());
         $this->mockContainer->shouldReceive('make')->with(QueryString::class, [])->andReturn(new QueryString());
         $this->mockContainer->shouldReceive('make')->with(InputSource::class, [])->andReturn(new InputSource());
@@ -110,7 +110,7 @@ class RequestParserFactoryTest extends TestCase
         ];
         $factory = $this->createFactory($userConfig);
 
-        // 模拟容器的 make 方法，并验证传递给它的选项
+        // Mock container make method and verify options passed to it
         $this->mockContainer->shouldReceive('make')
             ->with(QueryString::class, ['paramName' => 'custom_token'])
             ->ordered()
@@ -134,15 +134,15 @@ class RequestParserFactoryTest extends TestCase
     public function testGetParserChainWithMixedConfiguration(): void
     {
         $userConfig = [
-            QueryString::class, // 字符串
-            ['class' => AuthorizationHeader::class, 'options' => ['prefix' => 'BearerToken']], // 数组带选项
-            new Cookie('my_app_cookie_name'), // 预实例化对象
+            QueryString::class, // String
+            ['class' => AuthorizationHeader::class, 'options' => ['prefix' => 'BearerToken']], // Array with options
+            new Cookie('my_app_cookie_name'), // Pre-instantiated object
         ];
         $factory = $this->createFactory($userConfig);
 
         $this->mockContainer->shouldReceive('make')->with(QueryString::class, [])->andReturn(new QueryString());
         $this->mockContainer->shouldReceive('make')->with(AuthorizationHeader::class, ['prefix' => 'BearerToken'])->andReturn(new AuthorizationHeader('BearerToken'));
-        // 对于预实例化对象，createParser 会直接返回，不调用 container->make
+        // For pre-instantiated objects, createParser returns directly without calling container->make
 
         $chain = $factory->getParserChain();
 
@@ -157,20 +157,20 @@ class RequestParserFactoryTest extends TestCase
     public function testGetParserChainSkipsInvalidConfigurationItems(): void
     {
         $userConfig = [
-            'NonExistentParserClass', // 无效类名
-            ['class' => stdClass::class], // 无效类（未实现接口）
-            QueryString::class, // 有效
-            [], // 空数组配置
-            ['options_only' => ['foo' => 'bar']], // 无 class 键
+            'NonExistentParserClass', // Invalid class name
+            ['class' => stdClass::class], // Invalid class (interface not implemented)
+            QueryString::class, // Valid
+            [], // Empty array config
+            ['options_only' => ['foo' => 'bar']], // Missing 'class' key
         ];
         $factory = $this->createFactory($userConfig);
 
-        // 只期望 QueryString::class 被成功创建
+        // Expect only QueryString::class to be successfully created
         $this->mockContainer->shouldReceive('make')->with(QueryString::class, [])->andReturn(new QueryString());
-        // 对于无效配置，不应该调用 container->make
+        // For invalid config, container->make should not be called
 
         $chain = $factory->getParserChain();
-        $this->assertCount(1, $chain); // 只应该有一个有效的解析器
+        $this->assertCount(1, $chain); // Should only have 1 valid parser
         $this->assertInstanceOf(QueryString::class, $chain[0]);
     }
 
@@ -209,11 +209,11 @@ class RequestParserFactoryTest extends TestCase
     public function testCreateParserWithPreInstantiatedObject(): void
     {
         $factory = $this->createFactory();
-        $preInstantiatedParser = new Cookie(); // 直接实例化
+        $preInstantiatedParser = new Cookie(); // Direct instantiation
 
         $parser = $factory->createParser($preInstantiatedParser);
         $this->assertSame($preInstantiatedParser, $parser);
-        // 这种情况下不应调用 container->make
+        // In this case container->make should not be called
         $this->mockContainer->shouldNotHaveReceived('make');
     }
 
@@ -221,11 +221,11 @@ class RequestParserFactoryTest extends TestCase
     {
         $factory = $this->createFactory();
         $this->assertNull($factory->createParser('NonExistentClass'));
-        $this->assertNull($factory->createParser(['class' => \stdClass::class])); // stdClass不实现接口
-        $this->assertNull($factory->createParser([])); // 空数组
-        $this->assertNull($factory->createParser(['invalid_key' => QueryString::class])); // 错误格式
+        $this->assertNull($factory->createParser(['class' => \stdClass::class])); // stdClass does not implement interface
+        $this->assertNull($factory->createParser([])); // Empty array
+        $this->assertNull($factory->createParser(['invalid_key' => QueryString::class])); // Invalid format
         $this->expectException(\TypeError::class);
-        $this->assertNull($factory->createParser(123)); // 无效类型
+        $this->assertNull($factory->createParser(123)); // Invalid type
     }
 
     public function testSetParsersConfigClearsCache(): void
@@ -233,21 +233,21 @@ class RequestParserFactoryTest extends TestCase
         $factory = $this->createFactory([QueryString::class]);
         $this->mockContainer->shouldReceive('make')->with(QueryString::class, [])->andReturn(new QueryString());
 
-        $chain1 = $factory->getParserChain(); // 第一次调用，会缓存
+        $chain1 = $factory->getParserChain(); // First call, will cache
         $this->assertCount(1, $chain1);
 
-        // 修改配置
-        $this->mockConfig->shouldReceive('get') // 确保 config mock 被更新的调用捕获
+        // Modify config
+        $this->mockConfig->shouldReceive('get') // Ensure config mock captures updated calls
             ->with('jwt.token_parsers', Mockery::any())
-            ->andReturn([AuthorizationHeader::class]); // 新的配置
+            ->andReturn([AuthorizationHeader::class]); // New config
 
-        // 模拟容器对新配置的 make 调用
+        // Mock container make call for new config
         $this->mockContainer->shouldReceive('make')->with(AuthorizationHeader::class, [])->andReturn(new AuthorizationHeader());
 
 
-        $factory->setParsersConfig([AuthorizationHeader::class]); // 调用 setParsersConfig
+        $factory->setParsersConfig([AuthorizationHeader::class]); // Call setParsersConfig
 
-        $chain2 = $factory->getParserChain(); // 第二次调用，应该使用新配置并重新生成
+        $chain2 = $factory->getParserChain(); // Second call, should use new config and regenerate
         $this->assertCount(1, $chain2);
         $this->assertInstanceOf(AuthorizationHeader::class, $chain2[0]);
     }

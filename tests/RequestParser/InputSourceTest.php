@@ -7,12 +7,12 @@ namespace Kylesean\Jwt\Tests\RequestParser;
 use Kylesean\Jwt\RequestParser\InputSource;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use stdClass;
 
-#[CoversNothing]
+#[CoversClass(InputSource::class)]
 class InputSourceTest extends TestCase
 {
     use MockeryPHPUnitIntegration;
@@ -26,7 +26,7 @@ class InputSourceTest extends TestCase
 
     public function testParseWithValidTokenInArrayBody(): void
     {
-        $parser = new InputSource(); // 默认参数名 "token"
+        $parser = new InputSource(); // Default parameter name "token"
         $request = $this->createRequestWithParsedBody(['token' => 'my_jwt_from_input_array']);
         $this->assertEquals('my_jwt_from_input_array', $parser->parse($request));
     }
@@ -72,7 +72,7 @@ class InputSourceTest extends TestCase
     public function testParseWithNonArrayOrObjectBody(): void
     {
         $parser = new InputSource();
-        $request = $this->createRequestWithParsedBody(null); // 例如 getParsedBody 返回 null
+        $request = $this->createRequestWithParsedBody(null); // e.g. getParsedBody returns null
         $this->assertNull($parser->parse($request));
 
         $requestStringBody = $this->createRequestWithParsedBody("just a string");

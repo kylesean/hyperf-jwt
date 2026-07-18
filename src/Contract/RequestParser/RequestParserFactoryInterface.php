@@ -7,37 +7,36 @@ namespace Kylesean\Jwt\Contract\RequestParser;
 /**
  * Interface RequestParserFactoryInterface.
  *
- * 负责创建和提供一个有序的 RequestParserInterface 实例链。
- * Manager 将使用这个工厂来获取解析器，并按顺序尝试从请求中提取 JWT。
+ * Responsible for creating and providing an ordered chain of RequestParserInterface instances.
+ * Manager will use this factory to get parsers and try to extract JWT from the request in order.
  */
 interface RequestParserFactoryInterface
 {
     /**
-     * 获取配置的请求解析器链。
+     * Get the configured request parser chain.
      *
-     * @return RequestParserInterface[] 返回一个 RequestParserInterface 实例的数组，
-     *                                  这些实例将按顺序用于尝试解析 JWT。
+     * @return RequestParserInterface[] An array of RequestParserInterface instances that will be used in order to try to parse the JWT.
      */
     public function getParserChain(): array;
 
     /**
-     * 根据给定的解析器类名或配置数组，创建一个解析器实例。
+     * Create a parser instance based on the given parser class name or configuration array.
      *
-     * @param string|array<int|string, mixed> $parserConfig 解析器的类名，或者一个包含 'class' 和可选参数的配置数组。
-     * @return RequestParserInterface|null 如果无法创建解析器则返回 null。
+     * @param string|array<int|string, mixed> $parserConfig The class name of the parser, or a configuration array containing 'class' and optional parameters.
+     * @return RequestParserInterface|null Returns null if the parser cannot be created.
      */
     public function createParser(string|array $parserConfig): ?RequestParserInterface;
 
     /**
-     * 设置要使用的解析器配置。
-     * 这通常来自用户配置文件中 'token_parsers' 的定义。
+     * Set the parser configuration to be used.
+     * This usually comes from the 'token_parsers' definition in the user's configuration file.
      *
-     * @param array<int, string|array<string, mixed>|RequestParserInterface> $parsersConfig 一个解析器配置数组，每个元素可以是类名或配置数组。
-     *                             例如：
+     * @param array<int, string|array<string, mixed>|RequestParserInterface> $parsersConfig An array of parser configurations, where each element can be a class name or a configuration array.
+     *                             For example:
      *                             [
      *                                 \Kylesean\Jwt\RequestParser\AuthorizationHeader::class,
      *                                 ['class' => \Kylesean\Jwt\RequestParser\QueryString::class, 'options' => ['name' => 'custom_token_param']],
-     *                                 new MyCustomParser(), // 也可以是已实例化的解析器对象
+     *                                 new MyCustomParser(), // can also be an instantiated parser object
      *                             ]
      * @return $this
      */

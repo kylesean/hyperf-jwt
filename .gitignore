@@ -8,4 +8,5 @@ phpunit.result.cache
 .DS_Store
 phpunit.xml
 .phpunit.cache
+/build/
 .vscode
