@@ -25,6 +25,7 @@ class QueryString implements RequestParserInterface
         if (isset($queryParams[$this->paramName]) && !empty(trim((string) $queryParams[$this->paramName]))) {
             return trim((string) $queryParams[$this->paramName]);
         }
+
         return null;
     }
 

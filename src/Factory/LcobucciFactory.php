@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Kylesean\Jwt\Factory;
 
-use Kylesean\Jwt\Exception\JwtException;
 use Hyperf\Contract\ConfigInterface;
+use Kylesean\Jwt\Exception\JwtException;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Signer\Key\InMemory;
@@ -26,6 +26,7 @@ class LcobucciFactory
             if (is_string($customFactory) && $container->has($customFactory)) {
                 return $container->get($customFactory);
             }
+
             throw new JwtException('Invalid jwt.lcobucci_config_factory configuration.');
         }
 

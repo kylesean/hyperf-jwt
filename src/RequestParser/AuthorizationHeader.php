@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Kylesean\Jwt\RequestParser;
 
-use Kylesean\Jwt\Contract\RequestParser\RequestParserInterface;
 use Hyperf\Stringable\Str;
+use Kylesean\Jwt\Contract\RequestParser\RequestParserInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
@@ -35,6 +35,7 @@ class AuthorizationHeader implements RequestParserInterface
         }
 
         $token = Str::substr($headerValue, Str::length($prefixWithSpace));
+
         return !empty($token) ? $token : null;
     }
 

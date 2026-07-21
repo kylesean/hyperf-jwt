@@ -4,21 +4,17 @@ declare(strict_types=1);
 
 namespace Kylesean\Jwt\Command;
 
-use Hyperf\Command\Command as HyperfCommand;
 use Hyperf\Command\Annotation\Command;
+use Hyperf\Command\Command as HyperfCommand;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Input\InputArgument;
 
 #[Command]
 class GenJwtKeyCommand extends HyperfCommand
 {
-    protected ContainerInterface $container;
-
-    public function __construct(ContainerInterface $container)
+    public function __construct(protected ContainerInterface $container)
     {
         parent::__construct('jwt:gen-key');
-        $this->container = $container;
         $this->setDescription('Generate a new JWT secret key (for HMAC) or key pair (for RSA/ECDSA).');
     }
 
@@ -28,21 +24,22 @@ class GenJwtKeyCommand extends HyperfCommand
         $algo = is_string($algoOption) ? strtolower($algoOption) : 'hs256';
 
         if (str_starts_with($algo, 'hs')) {
-            $this->generateHmacSecret($algo);
+            $success = $this->generateHmacSecret($algo);
         } elseif (str_starts_with($algo, 'rs')) {
-            $this->generateRsaKeyPair($algo);
+            $success = $this->generateRsaKeyPair($algo);
         } elseif (str_starts_with($algo, 'es')) {
-            $this->generateEcdsaKeyPair($algo);
+            $success = $this->generateEcdsaKeyPair($algo);
         } else {
             $this->output->error(sprintf('Unsupported algorithm: %s. Supported families: HS*, RS*, ES*.', $algo));
-            return 1;
+
+            return self::FAILURE;
         }
-        return 0;
+
+        return $success ? self::SUCCESS : self::FAILURE;
     }
 
-    protected function generateHmacSecret(string $algo): void
+    protected function generateHmacSecret(string $algo): bool
     {
-       
         $length = 32;
         if ($algo === 'hs384') {
             $length = 48;
@@ -64,7 +61,8 @@ class GenJwtKeyCommand extends HyperfCommand
             $this->output->writeln('  3. Try running: php -r "echo bin2hex(random_bytes(32));" to test your system.');
             $this->output->writeln('');
             $this->output->writeln('Error details: ' . $e->getMessage());
-            return; // Abort key generation instead of using insecure fallback
+
+            return false; // Abort key generation instead of using insecure fallback
         }
 
         $this->output->success(sprintf('Successfully generated new JWT secret for %s.', strtoupper($algo)));
@@ -80,44 +78,45 @@ class GenJwtKeyCommand extends HyperfCommand
 
         if ($this->input->getOption('update-env')) {
             $this->updateEnvFile('JWT_SECRET', $secret);
-
-
         } elseif ($this->input->isInteractive() && $this->output->confirm('Do you want to attempt to update your .env file automatically?', false)) {
             $this->updateEnvFile('JWT_SECRET', $secret);
         }
+
+        return true;
     }
 
-    protected function generateRsaKeyPair(string $algo): void
+    protected function generateRsaKeyPair(string $algo): bool
     {
         $bits = (int) $this->input->getOption('bits');
         $password = $this->input->getOption('password');
         if ($password === null && $this->input->isInteractive() && $this->output->confirm('Do you want to protect the private key with a password?', false)) {
             $password = $this->output->askHidden('Enter password for private key (leave empty for no password):');
-            if (empty($password))
+            if (empty($password)) {
                 $password = null;
+            }
         }
-
 
         $this->output->writeln(sprintf('Generating RSA-%d key pair for %s...', $bits, strtoupper($algo)));
 
         $config = [
-            "digest_alg" => match (strtoupper($algo)) { 
-                "RS384" => "sha384",
-                "RS512" => "sha512",
-                default => "sha256",
+            'digest_alg' => match (strtoupper($algo)) {
+                'RS384' => 'sha384',
+                'RS512' => 'sha512',
+                default => 'sha256',
             },
-            "private_key_bits" => $bits,
-            "private_key_type" => OPENSSL_KEYTYPE_RSA,
+            'private_key_bits' => $bits,
+            'private_key_type' => OPENSSL_KEYTYPE_RSA,
         ];
 
         // generate rsa private key
         $privateKeyResource = openssl_pkey_new($config);
         if ($privateKeyResource === false) {
             $this->output->error('Failed to generate RSA private key: ' . openssl_error_string());
-            return;
+
+            return false;
         }
 
-        // export rsa private key
+        // export rsa private key (encrypted with the password when one was given)
         $privateKeyPem = '';
         $exportResult = $password
             ? openssl_pkey_export($privateKeyResource, $privateKeyPem, $password)
@@ -125,75 +124,79 @@ class GenJwtKeyCommand extends HyperfCommand
 
         if ($exportResult === false) {
             $this->output->error('Failed to export RSA private key: ' . openssl_error_string());
-            return;
+
+            return false;
         }
 
         // get rsa public key details
         $publicKeyDetails = openssl_pkey_get_details($privateKeyResource);
         if ($publicKeyDetails === false || !isset($publicKeyDetails['key'])) {
             $this->output->error('Failed to get RSA public key details: ' . openssl_error_string());
-            return;
+
+            return false;
         }
         $publicKeyPem = $publicKeyDetails['key'];
 
-        $this->outputKeyPairResults($privateKeyPem, $publicKeyPem, $password, strtoupper($algo), $this->input->getOption('algo'));
+        $this->outputKeyPairResults($privateKeyPem, $publicKeyPem, $password, strtoupper($algo), (string) $this->input->getOption('algo'));
+
+        return true;
     }
 
-    protected function generateEcdsaKeyPair(string $algo): void
+    protected function generateEcdsaKeyPair(string $algo): bool
     {
         $curve = (string) $this->input->getOption('curve');
         $password = $this->input->getOption('password');
         if ($password === null && $this->input->isInteractive() && $this->output->confirm('Do you want to protect the private key with a password?', false)) {
             $password = $this->output->askHidden('Enter password for private key (leave empty for no password):');
-            if (empty($password))
+            if (empty($password)) {
                 $password = null;
+            }
         }
 
         $this->output->writeln(sprintf('Generating ECDSA key pair with curve %s for %s...', $curve, strtoupper($algo)));
 
         $config = [
-            "digest_alg" => match (strtoupper($algo)) { 
-                "ES384" => "sha384",
-                "ES512" => "sha512",
-                default => "sha256",
+            'digest_alg' => match (strtoupper($algo)) {
+                'ES384' => 'sha384',
+                'ES512' => 'sha512',
+                default => 'sha256',
             },
-            "private_key_type" => OPENSSL_KEYTYPE_EC,
-            "curve_name" => $curve,
+            'private_key_type' => OPENSSL_KEYTYPE_EC,
+            'curve_name' => $curve,
         ];
 
         $privateKeyResource = openssl_pkey_new($config);
         if ($privateKeyResource === false) {
             $this->output->error('Failed to generate ECDSA private key: ' . openssl_error_string() . ' (Ensure the curve name is valid and OpenSSL supports it)');
-            return;
+
+            return false;
         }
 
-        // export ecdsa private key
-        $privateKeyPemUnencrypted = '';
-        if (!openssl_pkey_export($privateKeyResource, $privateKeyPemUnencrypted)) { 
-            $this->output->error('Failed to export ECDSA private key (initial export): ' . openssl_error_string());
-            return;
+        // export EC private key. openssl_pkey_export() emits PKCS#8 and, when a
+        // password is supplied, encrypts it — which is exactly what lcobucci/jwt's
+        // InMemory::plainText()/file() accept together with the key passphrase.
+        $privateKeyPem = '';
+        $exportResult = $password
+            ? openssl_pkey_export($privateKeyResource, $privateKeyPem, $password)
+            : openssl_pkey_export($privateKeyResource, $privateKeyPem);
+
+        if ($exportResult === false) {
+            $this->output->error('Failed to export ECDSA private key: ' . openssl_error_string());
+
+            return false;
         }
-
-        $privateKeyPem = $privateKeyPemUnencrypted; // default use unencrypted
-
-        if ($password) {
-            // If you need a password, encrypt the unencrypted PKCS#8 private key with the password
-            // Lcobucci/jwt's InMemory::file/plainText expects PKCS#1 (RSA) or PKCS#8 (EC) encrypted format
-            // openssl_pkey_export exports the EC private key in PKCS#8 format (if OpenSSL version is newer)
-            $this->output->writeln("It's highly recommended to secure the unencrypted private key file with strict file permissions, or encrypt it manually using OpenSSL tools if password protection is required for the key file itself.");
-            $this->output->writeln("Example: openssl ec -in <unencrypted_private_key.pem> -out <encrypted_private_key.pem> -aes256 -passout pass:your_password");
-            $password = null; // reset password variable because we didn't actually use it to encrypt EC private key
-        }
-
 
         $publicKeyDetails = openssl_pkey_get_details($privateKeyResource);
         if ($publicKeyDetails === false || !isset($publicKeyDetails['key'])) {
             $this->output->error('Failed to get ECDSA public key details: ' . openssl_error_string());
-            return;
+
+            return false;
         }
         $publicKeyPem = $publicKeyDetails['key'];
 
-        $this->outputKeyPairResults($privateKeyPem, $publicKeyPem, $password, strtoupper($algo), $this->input->getOption('algo'));
+        $this->outputKeyPairResults($privateKeyPem, $publicKeyPem, $password, strtoupper($algo), (string) $this->input->getOption('algo'));
+
+        return true;
     }
 
     protected function outputKeyPairResults(string $privateKeyPem, string $publicKeyPem, ?string $password, string $algoNameForDisplay, string $algoOptionValue): void
@@ -211,7 +214,7 @@ class GenJwtKeyCommand extends HyperfCommand
 
         $this->output->writeln('Please configure these in your <comment>jwt.php</comment> config or <comment>.env</comment> file:');
         $this->output->writeln('');
-        $this->output->writeln("<info>// In config/autoload/jwt.php or your .env file:</info>");
+        $this->output->writeln('<info>// In config/autoload/jwt.php or your .env file:</info>');
         $signerClass = $algoOptionValue; // directly use the --algo value entered by the user
         if (!class_exists($signerClass)) { // if the user enters a shorthand, try to build it
             $algoShort = str_replace(['rs', 'es'], '', strtolower($algoNameForDisplay)); // 256, 384, 512
@@ -222,19 +225,19 @@ class GenJwtKeyCommand extends HyperfCommand
         $this->output->writeln("<info>'algo' => {$signerClass}::class,</info>");
         $this->output->writeln("<info>'keys' => [</info>");
         $this->output->writeln("<info>    'public' => env('JWT_PUBLIC_KEY', <<<EOT</info>");
-        $this->output->writeln("<info>" . $publicKeyPem . "</info>");
-        $this->output->writeln("<info>EOT</info>");
+        $this->output->writeln('<info>' . $publicKeyPem . '</info>');
+        $this->output->writeln('<info>EOT</info>');
         $this->output->writeln("<info>    ),</info>");
         $this->output->writeln("<info>    'private' => env('JWT_PRIVATE_KEY', <<<EOT</info>");
-        $this->output->writeln("<info>" . $privateKeyPem . "</info>");
-        $this->output->writeln("<info>EOT</info>");
-        $this->output->writeln("<info>    ),</info>");
+        $this->output->writeln('<info>' . $privateKeyPem . '</info>');
+        $this->output->writeln('<info>EOT</info>');
+        $this->output->writeln('<info>    ),</info>');
         if ($password) {
             $this->output->writeln("<info>    'passphrase' => env('JWT_PASSPHRASE', '{$password}'),</info>");
         } else {
             $this->output->writeln("<info>    'passphrase' => env('JWT_PASSPHRASE', null),</info>");
         }
-        $this->output->writeln("<info>],</info>");
+        $this->output->writeln('<info>],</info>');
         $this->output->writeln('');
         $this->output->writeln("Or, use 'file:///path/to/your/key.pem' for key paths.");
 
@@ -267,16 +270,18 @@ class GenJwtKeyCommand extends HyperfCommand
 
         if (!file_exists($envPath)) {
             $this->output->warning(".env file not found at: {$envPath}");
+
             return;
         }
 
         $content = file_get_contents($envPath);
         if ($content === false) {
             $this->output->warning("Failed to read .env file: {$envPath}");
+
             return;
         }
 
-        $pattern = "/^" . preg_quote($keyName, '/') . "=.*/m";
+        $pattern = '/^' . preg_quote($keyName, '/') . '=.*$/m';
 
         if (preg_match($pattern, $content)) {
             $content = preg_replace($pattern, "{$keyName}={$keyValue}", $content);
@@ -288,10 +293,11 @@ class GenJwtKeyCommand extends HyperfCommand
 
         if (file_put_contents($envPath, $content) === false) {
             $this->output->warning("Failed to write to .env file: {$envPath}");
+
             return;
         }
 
-        $this->output->success(".env file updated successfully.");
+        $this->output->success('.env file updated successfully.');
     }
 
     protected function configure(): void

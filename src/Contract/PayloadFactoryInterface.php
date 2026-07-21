@@ -30,6 +30,8 @@ interface PayloadFactoryInterface
 
     /**
      * Set the 'nbf' (Not Before) offset in seconds relative to 'iat' (Issued At).
+     * A positive value delays the validity start; a negative value makes the token
+     * valid that many seconds before 'iat' (clock-skew tolerance).
      *
      * @return $this
      */

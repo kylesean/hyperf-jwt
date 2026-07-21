@@ -4,13 +4,21 @@ declare(strict_types=1);
 
 namespace Kylesean\Jwt\Contract;
 
-use Kylesean\Jwt\Contract\TokenInterface;
+use Psr\Clock\ClockInterface;
 
 /**
  * Interface ValidatorInterface.
  */
 interface ValidatorInterface
 {
+    /**
+     * Set the clock used to validate time-related claims (exp, nbf, iat).
+     *
+     * @param ClockInterface|null $clock PSR-20 clock, or null to fall back to the system time
+     * @return $this
+     */
+    public function setClock(?ClockInterface $clock): self;
+
     /**
      * Set the required claims for validation.
      *

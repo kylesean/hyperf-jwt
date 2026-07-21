@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Kylesean\Jwt\Contract;
 
 use DateTimeImmutable;
-use Lcobucci\JWT\Token as LcobucciToken; 
+use Lcobucci\JWT\Token as LcobucciToken;
 
 interface TokenInterface
 {

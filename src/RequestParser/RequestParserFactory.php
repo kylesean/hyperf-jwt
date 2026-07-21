@@ -4,19 +4,14 @@ declare(strict_types=1);
 
 namespace Kylesean\Jwt\RequestParser;
 
+use Hyperf\Contract\ConfigInterface;
+use Hyperf\Contract\ContainerInterface;
 use Kylesean\Jwt\Contract\RequestParser\RequestParserFactoryInterface;
 use Kylesean\Jwt\Contract\RequestParser\RequestParserInterface;
-use Hyperf\Contract\ConfigInterface;
-use Psr\Container\ContainerInterface;
-use Kylesean\Jwt\RequestParser\AuthorizationHeader;
-use Kylesean\Jwt\RequestParser\QueryString;
-use Kylesean\Jwt\RequestParser\InputSource;
-use Kylesean\Jwt\RequestParser\Cookie;
+use Psr\Log\LoggerInterface;
 
 class RequestParserFactory implements RequestParserFactoryInterface
 {
-    protected ContainerInterface $container;
-
     /**
      * save parser config
      * @var array<int, string|array<string, mixed>|RequestParserInterface>
@@ -41,14 +36,8 @@ class RequestParserFactory implements RequestParserFactoryInterface
         Cookie::class,
     ];
 
-    /**
-     *
-     * @param ContainerInterface $container
-     * @param ConfigInterface $config
-     */
-    public function __construct(ContainerInterface $container, ConfigInterface $config)
+    public function __construct(protected ContainerInterface $container, ConfigInterface $config)
     {
-        $this->container = $container;
         // get token_parsers from jwt.php config, if not found, use default config
         $userParserConfigs = $config->get('jwt.token_parsers', $this->defaultParserConfigs);
         $this->setParsersConfig($userParserConfigs);
@@ -65,6 +54,7 @@ class RequestParserFactory implements RequestParserFactoryInterface
         $this->parsersConfig = $parsersConfig;
         // clear cache when config change
         $this->parserChainCache = null;
+
         return $this;
     }
 
@@ -84,13 +74,15 @@ class RequestParserFactory implements RequestParserFactoryInterface
             $parser = $this->createParser($configItem);
             if ($parser instanceof RequestParserInterface) {
                 $chain[] = $parser;
+            } else {
+                $this->logWarning(sprintf(
+                    'Invalid JWT token parser configuration skipped: %s',
+                    is_object($configItem) ? get_class($configItem) : json_encode($configItem)
+                ));
             }
-            // log if createParser return null
-            // else {
-            //     // e.g., $this->container->get(LoggerInterface::class)->warning("Invalid parser configuration: " . json_encode($configItem));
-            // }
         }
         $this->parserChainCache = $chain;
+
         return $this->parserChainCache;
     }
 
@@ -111,15 +103,16 @@ class RequestParserFactory implements RequestParserFactoryInterface
             return $parserConfig; // if already an instance, return it directly
         }
 
-        $className = null;
         $options = [];
 
         if (is_string($parserConfig)) {
             // Case 1: string
             $className = $parserConfig;
-        } elseif (is_array($parserConfig)) {
+        } else {
+            // After the instanceof and is_string() guards only arrays remain.
             if (empty($parserConfig)) {
-                // logging: "Empty array provided for parser configuration."
+                $this->logWarning('Empty array provided for JWT token parser configuration.');
+
                 return null;
             }
 
@@ -129,28 +122,27 @@ class RequestParserFactory implements RequestParserFactoryInterface
                 $className = $parserConfig[0];
                 // if second element is array, use it as options
                 $options = (isset($parserConfig[1]) && is_array($parserConfig[1])) ? $parserConfig[1] : [];
-            }
-            // Case 3: map style ['class' => ClassName::class, 'options' => $optionsArray]
-            elseif (isset($parserConfig['class']) && is_string($parserConfig['class'])) {
+            } elseif (isset($parserConfig['class']) && is_string($parserConfig['class'])) {
+                // Case 3: map style ['class' => ClassName::class, 'options' => $optionsArray]
                 $className = $parserConfig['class'];
                 $options = (isset($parserConfig['options']) && is_array($parserConfig['options'])) ? $parserConfig['options'] : [];
             } else {
-                // logging: "Invalid array format for parser configuration: " . json_encode($parserConfig)
+                $this->logWarning('Invalid array format for JWT token parser configuration: ' . json_encode($parserConfig));
+
                 return null;
             }
-        } else {
-            // logging: "Invalid parser configuration type: " . gettype($parserConfig)
-            return null;
         }
 
         if (!$className || !class_exists($className)) {
-            // logging: "Parser class '{$className}' does not exist or invalid class name provided."
+            $this->logWarning("JWT token parser class '{$className}' does not exist.");
+
             return null;
         }
 
         // check class implements RequestParserInterface
         if (!is_subclass_of($className, RequestParserInterface::class)) {
-            // logging: "Parser class '{$className}' must implement " . RequestParserInterface::class
+            $this->logWarning("JWT token parser class '{$className}' must implement " . RequestParserInterface::class);
+
             return null;
         }
 
@@ -159,9 +151,20 @@ class RequestParserFactory implements RequestParserFactoryInterface
             // Hyperf container can match $options array keys with constructor argument names
             return $this->container->make($className, $options);
         } catch (\Throwable $e) {
-            // logging: "Failed to create parser '{$className}': " . $e->getMessage()
-            // in production environment, should log this error $e
+            $this->logWarning("Failed to create JWT token parser '{$className}': " . $e->getMessage());
+
             return null;
+        }
+    }
+
+    /**
+     * Log a warning through the PSR-3 logger when one is bound in the container.
+     * Logging is optional: when no logger is available the failure is skipped silently.
+     */
+    protected function logWarning(string $message): void
+    {
+        if ($this->container->has(LoggerInterface::class)) {
+            $this->container->get(LoggerInterface::class)->warning($message);
         }
     }
 }

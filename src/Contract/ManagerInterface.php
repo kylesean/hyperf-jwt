@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Kylesean\Jwt\Contract;
 
 use Kylesean\Jwt\Contract\RequestParser\RequestParserFactoryInterface;
-use Kylesean\Jwt\Contract\TokenInterface;
 use Lcobucci\JWT\Configuration as LcobucciConfiguration;
 use Lcobucci\JWT\Signer;
 use Psr\Http\Message\ServerRequestInterface;

@@ -97,6 +97,8 @@ try {
 $manager->invalidate($token);
 ```
 
+The blacklist entry for an invalidated token is kept until the token's natural expiry **plus** the full `refresh_ttl` window, so a logged-out token can never be "revived" by refreshing it later. Pass `true` as the second argument to keep the entry for one year ("forever") instead: `$manager->invalidate($token, true)`.
+
 #### Coroutine Concurrency Grace Period
 In high-concurrency coroutine environments (e.g. 5 parallel HTTP requests sent by a Single Page App simultaneously), if one request refreshes the token and invalidates the old one immediately, the remaining 4 concurrent requests carrying the old token might trigger 401 Unauthorized errors.
 
@@ -107,6 +109,8 @@ Configure the concurrency grace period in `config/autoload/jwt.php`:
 ```
 
 During this 30-second window, the replaced old token remains accepted as valid, preventing race-condition failures.
+
+> **Concurrency semantics:** the grace period guarantees that concurrent requests *validating* the old token do not fail. Blacklisting itself is a non-atomic check-then-set against the cache, so two refresh calls arriving at the exact same instant may both succeed and each receive a new token (the old token still ends up blacklisted). If your business logic requires strictly single-use refresh, add a distributed lock around `refreshToken()`.
 
 ---
 

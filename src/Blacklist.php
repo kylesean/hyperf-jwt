@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Kylesean\Jwt;
 
+use Hyperf\Contract\ConfigInterface;
 use Kylesean\Jwt\Cache\CacheFactory;
 use Kylesean\Jwt\Contract\BlacklistInterface;
 use Kylesean\Jwt\Contract\TokenInterface;
 use Kylesean\Jwt\Exception\JwtException;
-use Hyperf\Contract\ConfigInterface;
 use Psr\SimpleCache\CacheInterface;
 
 class Blacklist implements BlacklistInterface
@@ -41,10 +41,10 @@ class Blacklist implements BlacklistInterface
         }
 
         $ttl = $ttl ?? $this->gracePeriod;
-        
+
         // If concurrencyGracePeriod is set, store the absolute timestamp of invalidation
         $valueToStore = $concurrencyGracePeriod > 0 ? time() + $concurrencyGracePeriod : 0;
-        
+
         return $this->cache->set($this->getCacheKey($jti), $valueToStore, $ttl);
     }
 
@@ -102,6 +102,7 @@ class Blacklist implements BlacklistInterface
     public function setDefaultGracePeriod(int $ttl): self
     {
         $this->gracePeriod = max(0, $ttl);
+
         return $this;
     }
 

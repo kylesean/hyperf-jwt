@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Kylesean\Jwt;
 
 use DateTimeImmutable;
-use DateInterval;
-use Kylesean\Jwt\Contract\PayloadFactoryInterface;
 use Hyperf\Contract\ConfigInterface;
+use Kylesean\Jwt\Contract\PayloadFactoryInterface;
 use Psr\Clock\ClockInterface;
 
 class PayloadFactory implements PayloadFactoryInterface
@@ -58,7 +57,8 @@ class PayloadFactory implements PayloadFactoryInterface
         $this->setRefreshTtl((int) $this->config->get('jwt.refresh_ttl', self::DEFAULT_REFRESH_TTL_MINUTES));
         $this->setNbfOffsetSeconds((int) $this->config->get('jwt.nbf_offset_seconds', 0));
         $this->setIssuer((string) $this->config->get('jwt.issuer', 'Hyperf App'));
-        $this->setAudience($this->config->get('jwt.audience', 'Hyperf App'));
+        $audience = $this->config->get('jwt.audience', 'Hyperf App');
+        $this->setAudience(is_array($audience) ? $audience : (string) $audience);
     }
 
     public function setTtl(int $ttl): self
@@ -69,6 +69,7 @@ class PayloadFactory implements PayloadFactoryInterface
             $ttl = self::MAX_TTL_MINUTES;
         }
         $this->ttl = $ttl;
+
         return $this;
     }
 
@@ -85,6 +86,7 @@ class PayloadFactory implements PayloadFactoryInterface
             $refreshTtl = self::MAX_REFRESH_TTL_MINUTES;
         }
         $this->refreshTtl = $refreshTtl;
+
         return $this;
     }
 
@@ -96,6 +98,7 @@ class PayloadFactory implements PayloadFactoryInterface
     public function setNbfOffsetSeconds(int $seconds): self
     {
         $this->nbfOffsetSeconds = $seconds;
+
         return $this;
     }
 
@@ -107,6 +110,7 @@ class PayloadFactory implements PayloadFactoryInterface
     public function setIssuer(string $issuer): self
     {
         $this->issuer = $issuer;
+
         return $this;
     }
 
@@ -118,6 +122,7 @@ class PayloadFactory implements PayloadFactoryInterface
     public function setAudience(string|array $audience): self
     {
         $this->audience = $audience;
+
         return $this;
     }
 
@@ -134,6 +139,7 @@ class PayloadFactory implements PayloadFactoryInterface
     public function setClock(?ClockInterface $clock): self
     {
         $this->clock = $clock;
+
         return $this;
     }
 
@@ -143,6 +149,7 @@ class PayloadFactory implements PayloadFactoryInterface
     public function getClaimsToRefresh(): array
     {
         $userClaimsToRefresh = $this->config->get('jwt.claims_to_refresh', []);
+
         return array_unique(array_merge($this->claimsToRefresh, is_array($userClaimsToRefresh) ? $userClaimsToRefresh : []));
     }
 

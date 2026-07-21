@@ -6,7 +6,6 @@ namespace Kylesean\Jwt;
 
 use DateTimeImmutable;
 use Kylesean\Jwt\Contract\TokenInterface;
-use Lcobucci\JWT\Token as LcobucciPlainToken;
 use Lcobucci\JWT\UnencryptedToken;
 use Stringable;
 
@@ -29,12 +28,15 @@ readonly class Token implements TokenInterface
 
     public function getId(): ?string
     {
-        return $this->lcobucciToken->claims()->get('jti');
+        $jti = $this->lcobucciToken->claims()->get('jti');
+
+        return $jti === null ? null : (string) $jti;
     }
 
     public function getIssuer(): ?string
     {
         $issuer = $this->lcobucciToken->claims()->get('iss');
+
         return $issuer instanceof Stringable ? (string) $issuer : $issuer;
     }
 
@@ -44,12 +46,14 @@ readonly class Token implements TokenInterface
     public function getAudience(): array
     {
         $audience = $this->lcobucciToken->claims()->get('aud', []);
+
         return is_array($audience) ? $audience : [$audience];
     }
 
     public function getSubject(): ?string
     {
         $subject = $this->lcobucciToken->claims()->get('sub');
+
         return $subject instanceof Stringable ? (string) $subject : $subject;
     }
 
@@ -87,6 +91,7 @@ readonly class Token implements TokenInterface
         foreach ($this->lcobucciToken->claims()->all() as $name => $value) {
             $claimsArray[$name] = $value;
         }
+
         return $claimsArray;
     }
 

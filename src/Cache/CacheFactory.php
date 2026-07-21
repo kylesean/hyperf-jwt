@@ -4,15 +4,11 @@ declare(strict_types=1);
 
 namespace Kylesean\Jwt\Cache;
 
+use Hyperf\Cache\CacheManager;
 use Hyperf\Contract\ConfigInterface;
+use Kylesean\Jwt\Exception\JwtException;
 use Psr\Container\ContainerInterface;
 use Psr\SimpleCache\CacheInterface;
-use Hyperf\Cache\CacheManager;
-
-use Kylesean\Jwt\Exception\JwtException;
-
-
-
 
 class CacheFactory
 {

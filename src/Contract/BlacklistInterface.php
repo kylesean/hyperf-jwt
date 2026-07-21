@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace Kylesean\Jwt\Contract;
 
-use Kylesean\Jwt\Contract\TokenInterface;
 /**
  * Interface BlacklistInterface.
  *
  * Defines the contract for managing the JWT blacklist.
  * The blacklist is used to invalidate issued tokens.
+ *
+ * Note on concurrency: implementations built on PSR-16 caches perform
+ * check-then-set, which is not atomic. Two coroutines refreshing the same
+ * token simultaneously may both observe "not blacklisted" and both succeed.
+ * The blacklist itself still ends up containing the token; callers that need
+ * strict single-use refresh semantics must add their own distributed lock.
  */
 interface BlacklistInterface
 {

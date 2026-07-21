@@ -28,6 +28,7 @@ class Cookie implements RequestParserInterface
                 return trim($token);
             }
         }
+
         return null;
     }
 

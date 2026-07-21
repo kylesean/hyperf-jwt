@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Kylesean\Jwt;
 
-use DateTimeImmutable;
 use DateInterval;
+use DateTimeImmutable;
 use Kylesean\Jwt\Contract\TokenInterface;
 use Kylesean\Jwt\Contract\ValidatorInterface;
 use Kylesean\Jwt\Exception\TokenExpiredException;
@@ -26,6 +26,7 @@ class Validator implements ValidatorInterface
     public function setClock(?ClockInterface $clock): self
     {
         $this->clock = $clock;
+
         return $this;
     }
 
@@ -40,6 +41,7 @@ class Validator implements ValidatorInterface
     public function setRequiredClaims(array $claims): self
     {
         $this->requiredClaims = $claims;
+
         return $this;
     }
 
@@ -57,6 +59,7 @@ class Validator implements ValidatorInterface
     public function setLeeway(int $leeway): self
     {
         $this->leeway = $leeway > 0 ? $leeway : 0;
+
         return $this;
     }
 
@@ -73,13 +76,6 @@ class Validator implements ValidatorInterface
      */
     public function validate(TokenInterface $token, bool $checkStandardClaims = true, array $expectedClaims = []): void
     {
-        $allExpectedClaims = $this->requiredClaims;
-        foreach ($expectedClaims as $key => $value) {
-            if (!in_array($key, $allExpectedClaims, true)) {
-                $allExpectedClaims[] = $key;
-            }
-        }
-
         $this->checkClaims($token, $expectedClaims, $this->requiredClaims);
 
         if ($checkStandardClaims) {
@@ -135,6 +131,13 @@ class Validator implements ValidatorInterface
             if (!$token->hasClaim($claimName)) {
                 throw new TokenInvalidException(sprintf('Expected claim "%s" is missing.', $claimName));
             }
+
+            // A literal `true` as expected value means "presence only": the claim must
+            // exist, but its value is not constrained (see ValidatorInterface::checkClaims()).
+            if ($expectedValue === true) {
+                continue;
+            }
+
             $actualValue = $token->getClaim($claimName);
 
             if ($claimName === 'aud') {
@@ -144,6 +147,7 @@ class Validator implements ValidatorInterface
                 foreach ($expectedAudience as $expectedAud) {
                     if (in_array((string) $expectedAud, $actualAudience, true)) {
                         $match = true;
+
                         break;
                     }
                 }

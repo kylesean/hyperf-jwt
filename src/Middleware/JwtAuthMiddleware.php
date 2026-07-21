@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Kylesean\Jwt\Middleware;
 
 use Hyperf\Context\Context;
+use Hyperf\Contract\ConfigInterface;
 use Kylesean\Jwt\Contract\ManagerInterface;
 use Kylesean\Jwt\Contract\TokenInterface;
 use Kylesean\Jwt\Exception\TokenInvalidException;
-use Hyperf\HttpServer\Contract\ResponseInterface as HttpResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -34,8 +34,7 @@ class JwtAuthMiddleware implements MiddlewareInterface
 
     public function __construct(
         protected ManagerInterface $manager,
-        protected HttpResponse $response,
-        protected \Hyperf\Contract\ConfigInterface $config
+        protected ConfigInterface $config
     ) {
     }
 
@@ -48,6 +47,7 @@ class JwtAuthMiddleware implements MiddlewareInterface
             if ($required) {
                 throw new TokenInvalidException('Token not provided.');
             }
+
             return $handler->handle($request);
         }
 
