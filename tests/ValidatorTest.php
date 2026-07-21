@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Kylesean\Jwt\Tests;
 
-use DateTimeImmutable;
 use DateInterval;
+use DateTimeImmutable;
 use Kylesean\Jwt\Contract\TokenInterface;
 use Kylesean\Jwt\Exception\TokenExpiredException;
 use Kylesean\Jwt\Exception\TokenInvalidException;
@@ -32,14 +32,12 @@ class ValidatorTest extends TestCase
         $this->mockToken = Mockery::mock(TokenInterface::class);
     }
 
-
     public function testSetAndGetRequiredClaims(): void
     {
         $claims = ['iss', 'sub'];
         $this->validator->setRequiredClaims($claims);
         $this->assertEquals($claims, $this->validator->getRequiredClaims());
     }
-
 
     public function testSetAndGetLeeway(): void
     {
@@ -211,6 +209,26 @@ class ValidatorTest extends TestCase
         $this->assertTrue(true); // No exception
     }
 
+    public function testCheckClaimsExpectedValueTrueOnlyChecksPresence(): void
+    {
+        // Documented contract: an expected value of `true` means "claim must exist,
+        // value unconstrained" — getClaim() must not even be consulted.
+        $this->mockToken->shouldReceive('hasClaim')->with('sub')->once()->andReturn(true);
+        $this->mockToken->shouldNotReceive('getClaim');
+
+        $this->validator->checkClaims($this->mockToken, ['sub' => true]);
+        $this->assertTrue(true); // No exception
+    }
+
+    public function testCheckClaimsExpectedValueTrueFailsWhenClaimMissing(): void
+    {
+        $this->expectException(TokenInvalidException::class);
+        $this->expectExceptionMessage('Expected claim "sub" is missing.');
+
+        $this->mockToken->shouldReceive('hasClaim')->with('sub')->once()->andReturn(false);
+
+        $this->validator->checkClaims($this->mockToken, ['sub' => true]);
+    }
 
     // --- Test validate method (Integration test of checkClaims and checkTimestamps) ---
     public function testValidateMethodCallsSubMethods(): void

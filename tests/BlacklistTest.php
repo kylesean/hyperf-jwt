@@ -5,16 +5,17 @@ declare(strict_types=1);
 namespace Kylesean\Jwt\Tests;
 
 use DateTimeImmutable;
+use Hyperf\Contract\ConfigInterface;
 use Kylesean\Jwt\Blacklist;
 use Kylesean\Jwt\Cache\CacheFactory;
 use Kylesean\Jwt\Contract\TokenInterface;
-use Hyperf\Contract\ConfigInterface;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\CacheInterface; // Core dependency for Blacklist
-use Psr\Log\LoggerInterface; // Used internally by Blacklist
+
+// Used internally by Blacklist
 
 #[CoversClass(Blacklist::class)]
 class BlacklistTest extends TestCase
@@ -59,8 +60,9 @@ class BlacklistTest extends TestCase
         $token->shouldReceive('getId')->andReturn($jti)->byDefault();
         $token->shouldReceive('getExpirationTime')->andReturn($exp)->byDefault();
         $token->shouldReceive('getAllClaims')
-            ->andReturnUsing(fn() => ['jti' => $jti, 'exp' => $exp?->getTimestamp()])
+            ->andReturnUsing(fn () => ['jti' => $jti, 'exp' => $exp?->getTimestamp()])
             ->byDefault();
+
         return $token;
     }
 
@@ -219,7 +221,7 @@ class BlacklistTest extends TestCase
         $this->mockCache->shouldReceive('get')->once()->with($expectedCacheKey)->andReturn(null);
         $this->mockCache->shouldReceive('set')
             ->once()
-            ->with($expectedCacheKey, Mockery::on(fn($val) => is_int($val) && $val > time()), $this->defaultGracePeriod)
+            ->with($expectedCacheKey, Mockery::on(fn ($val) => is_int($val) && $val > time()), $this->defaultGracePeriod)
             ->andReturn(true);
 
         $this->assertTrue($this->blacklist->add($token, null, $concurrencyGracePeriod));

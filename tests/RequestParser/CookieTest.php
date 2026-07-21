@@ -20,6 +20,7 @@ class CookieTest extends TestCase
     {
         $request = Mockery::mock(ServerRequestInterface::class);
         $request->shouldReceive('getCookieParams')->andReturn($cookies)->byDefault();
+
         return $request;
     }
 

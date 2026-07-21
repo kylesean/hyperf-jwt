@@ -20,6 +20,7 @@ class QueryStringTest extends TestCase
     {
         $request = Mockery::mock(ServerRequestInterface::class);
         $request->shouldReceive('getQueryParams')->andReturn($params)->byDefault();
+
         return $request;
     }
 

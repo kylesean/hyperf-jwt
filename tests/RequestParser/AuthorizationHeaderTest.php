@@ -25,6 +25,7 @@ class AuthorizationHeaderTest extends TestCase
         } else {
             $request->shouldReceive('getHeaderLine')->with($headerName)->andReturn($headerValue)->byDefault();
         }
+
         return $request;
     }
 

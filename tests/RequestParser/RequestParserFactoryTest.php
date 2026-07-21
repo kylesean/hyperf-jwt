@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace Kylesean\Jwt\Tests\RequestParser;
 
+use Hyperf\Contract\ConfigInterface;
+use Hyperf\Contract\ContainerInterface;
 use Kylesean\Jwt\Contract\RequestParser\RequestParserInterface;
 use Kylesean\Jwt\RequestParser\AuthorizationHeader;
 use Kylesean\Jwt\RequestParser\Cookie;
 use Kylesean\Jwt\RequestParser\InputSource;
 use Kylesean\Jwt\RequestParser\QueryString;
 use Kylesean\Jwt\RequestParser\RequestParserFactory;
-use Hyperf\Contract\ConfigInterface;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerInterface;
+use Psr\Log\LoggerInterface;
 use stdClass;
 
 #[CoversClass(RequestParserFactory::class)]
@@ -30,6 +31,12 @@ class RequestParserFactoryTest extends TestCase
     {
         parent::setUp();
         $this->mockContainer = Mockery::mock(ContainerInterface::class);
+        // The factory probes for an optional PSR-3 logger whenever it skips an
+        // invalid parser configuration; no logger is bound in these tests.
+        $this->mockContainer->shouldReceive('has')
+            ->with(LoggerInterface::class)
+            ->andReturn(false)
+            ->byDefault();
         $this->mockConfig = Mockery::mock(ConfigInterface::class);
     }
 
@@ -55,6 +62,7 @@ class RequestParserFactoryTest extends TestCase
                     // If test case provides specific config, return it
                     return $tokenParsersConfigFromTest;
                 }
+
                 // Otherwise simulate config key not found, returning default passed to get()
                 // (In Factory, this default is $this->defaultParserConfigs)
                 return $defaultValuePassedToGet;
@@ -63,7 +71,6 @@ class RequestParserFactoryTest extends TestCase
 
         return new RequestParserFactory($this->mockContainer, $this->mockConfig);
     }
-
 
     public function testGetParserChainWithDefaultConfiguration(): void
     {

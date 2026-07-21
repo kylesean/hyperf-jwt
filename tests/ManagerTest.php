@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Kylesean\Jwt\Tests;
 
-use DateTimeImmutable;
 use DateInterval;
-use Kylesean\Jwt\Blacklist;
-
+use DateTimeImmutable;
+use Hyperf\Contract\ConfigInterface;
 // Mock BlacklistInterface
+use Hyperf\Contract\ContainerInterface;
+use Hyperf\HttpServer\Contract\RequestInterface as HyperfRequestInterface;
+use Kylesean\Jwt\Blacklist;
 use Kylesean\Jwt\Contract\BlacklistInterface;
 use Kylesean\Jwt\Contract\PayloadFactoryInterface;
 use Kylesean\Jwt\Contract\RequestParser\RequestParserFactoryInterface;
@@ -18,37 +20,27 @@ use Kylesean\Jwt\Contract\ValidatorInterface;
 use Kylesean\Jwt\Exception\JwtException;
 use Kylesean\Jwt\Exception\TokenExpiredException;
 use Kylesean\Jwt\Exception\TokenInvalidException;
-use Kylesean\Jwt\Manager;
-use Kylesean\Jwt\PayloadFactory;
-
 // Mock PayloadFactoryInterface
-use Kylesean\Jwt\RequestParser\RequestParserFactory;
 
 // Mock RequestParserFactoryInterface
-use Kylesean\Jwt\Token;
-
+use Kylesean\Jwt\Exception\TokenNotYetValidException;
 // Used for make(Token::class)
-use Kylesean\Jwt\Validator;
-
+use Kylesean\Jwt\Manager;
 // Mock ValidatorInterface
-use Hyperf\Contract\ConfigInterface;
-use Hyperf\HttpServer\Contract\RequestInterface as HyperfRequestInterface;
-
+use Kylesean\Jwt\PayloadFactory;
+use Kylesean\Jwt\Token;
 // Used for testing parseTokenFromRequest
+use Kylesean\Jwt\Validator;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Signer\Key\InMemory;
-use Lcobucci\JWT\Token\Builder as LcobucciBuilder;
-use Lcobucci\JWT\Token\Parser as LcobucciParser;
 use Lcobucci\JWT\Token\Plain as LcobucciPlainToken;
 use Lcobucci\JWT\Validation\Constraint;
-use Lcobucci\JWT\Validation\Validator as LcobucciValidator;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Hyperf\Contract\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 #[CoversClass(Manager::class)]
@@ -192,7 +184,6 @@ class ManagerTest extends TestCase
         // Can further assert claims in token, but that tests PayloadFactory + Lcobucci
     }
 
-
     public function testParseValidTokenSuccessfully(): void
     {
         $now = new DateTimeImmutable();
@@ -230,7 +221,7 @@ class ManagerTest extends TestCase
             // Other necessary claims...
             'iat' => $now->getTimestamp(),
             'nbf' => $now->getTimestamp(),
-            'jti' => 'blacklisted_jti'
+            'jti' => 'blacklisted_jti',
         ], 'test_secret_key_for_hs256_at_least_32_bytes_long');
 
         // Mock Blacklist::has() returns true
@@ -249,7 +240,7 @@ class ManagerTest extends TestCase
             'exp' => $expiredTime->getTimestamp(),
             'iat' => $now->sub(new DateInterval('PT1H'))->getTimestamp(),
             'nbf' => $now->sub(new DateInterval('PT1H'))->getTimestamp(),
-            'jti' => 'expired_jti'
+            'jti' => 'expired_jti',
         ], 'test_secret_key_for_hs256_at_least_32_bytes_long');
 
         $this->mockOurValidator->shouldReceive('checkTimestamps')
@@ -277,7 +268,7 @@ class ManagerTest extends TestCase
             'exp' => $now->add(new DateInterval('PT1H'))->getTimestamp(),
             'iat' => $now->getTimestamp(),
             'nbf' => $now->getTimestamp(),
-            'jti' => 'from_req_jti'
+            'jti' => 'from_req_jti',
         ], 'test_secret_key_for_hs256_at_least_32_bytes_long');
 
         /** @phpstan-ignore argument.type */
@@ -316,7 +307,7 @@ class ManagerTest extends TestCase
             'iat' => $now->getTimestamp(),
             'nbf' => $now->getTimestamp(),
             'user_id' => 'user_to_refresh',
-            'sub' => 'user_to_refresh_sub'
+            'sub' => 'user_to_refresh_sub',
         ], 'test_secret_key_for_hs256_at_least_32_bytes_long');
 
         // Mock Blacklist behavior for old token
@@ -371,9 +362,18 @@ class ManagerTest extends TestCase
         $jti = 'jti_to_invalidate';
         $mockTokenObject = Mockery::mock(TokenInterface::class);
         $mockTokenObject->shouldReceive('getId')->andReturn($jti);
+        $mockTokenObject->shouldReceive('getExpirationTime')->andReturn(new DateTimeImmutable('+1 hour'));
 
+        // Blacklist entry must cover the remaining lifetime (~3600s) plus the whole
+        // refresh window (20160 min), otherwise the token could be refreshed after
+        // the blacklist entry expires.
+        $expectedTtl = 3600 + 20160 * 60;
         $this->mockBlacklist->shouldReceive('add')->once()
-            ->with($mockTokenObject, null, 0) // Explicit 0 concurrency grace period for manual invalidation
+            ->with(
+                $mockTokenObject,
+                Mockery::on(fn ($ttl) => is_int($ttl) && abs($ttl - $expectedTtl) <= 5),
+                0 // Explicit 0 concurrency grace period for manual invalidation
+            )
             ->andReturn(true);
 
         $this->assertSame($this->manager, $this->manager->invalidate($mockTokenObject));
@@ -398,9 +398,10 @@ class ManagerTest extends TestCase
 
         $mockTokenObject = Mockery::mock(TokenInterface::class);
         $mockTokenObject->shouldReceive('getId')->andReturn('some_jti');
+        $mockTokenObject->shouldReceive('getExpirationTime')->andReturnNull(); // no exp -> "forever" TTL
 
         $this->mockBlacklist->shouldReceive('add')->once()
-            ->with($mockTokenObject, null, 0)
+            ->with($mockTokenObject, Manager::FOREVER_TTL_SECONDS, 0)
             ->andReturn(false); // Mock adding to blacklist failed
 
         $this->manager->invalidate($mockTokenObject);
@@ -425,9 +426,10 @@ class ManagerTest extends TestCase
         // Verify the bug fix: JwtException should not be double-wrapped
         $mockTokenObject = Mockery::mock(TokenInterface::class);
         $mockTokenObject->shouldReceive('getId')->andReturn(null);
+        $mockTokenObject->shouldReceive('getExpirationTime')->andReturnNull();
 
         $this->mockBlacklist->shouldReceive('add')->once()
-            ->with($mockTokenObject, null, 0)
+            ->with($mockTokenObject, Manager::FOREVER_TTL_SECONDS, 0)
             ->andReturn(false);
 
         try {
@@ -444,7 +446,7 @@ class ManagerTest extends TestCase
 
     public function testIssueTokenWithObjectSubjectUsingGetJwtIdentifier(): void
     {
-        $subjectObject = new class {
+        $subjectObject = new class () {
             public function getJwtIdentifier(): int
             {
                 return 42;
@@ -493,7 +495,7 @@ class ManagerTest extends TestCase
         $testTokenString = $this->generateTestHs256TokenString([
             'exp' => $now->add(new DateInterval('PT1H'))->getTimestamp(),
             'iat' => $now->getTimestamp(),
-            'jti' => 'wrong_sig_jti'
+            'jti' => 'wrong_sig_jti',
         ], 'a_completely_different_secret_key_that_is_long_enough');
 
         $this->manager->parse($testTokenString);
@@ -501,23 +503,30 @@ class ManagerTest extends TestCase
 
     public function testParseTokenThrowsTokenNotYetValidException(): void
     {
-        // Create a token with nbf far in the future so LooseValidAt will reject it
+        // Create a token with nbf far in the future so timestamp validation rejects it
         $now = new DateTimeImmutable();
+        $nbf = $now->add(new DateInterval('PT1H')); // Not valid for 1 hour
         $testTokenString = $this->generateTestHs256TokenString([
             'exp' => $now->add(new DateInterval('PT2H'))->getTimestamp(),
             'iat' => $now->getTimestamp(),
-            'nbf' => $now->add(new DateInterval('PT1H'))->getTimestamp(), // Not valid for 1 hour
-            'jti' => 'nbf_future_jti'
+            'nbf' => $nbf->getTimestamp(),
+            'jti' => 'nbf_future_jti',
         ], 'test_secret_key_for_hs256_at_least_32_bytes_long');
+
+        $this->mockOurValidator->shouldReceive('checkTimestamps')
+            ->once()
+            ->andThrow(new TokenNotYetValidException('Token is not yet valid (Not Before).', $nbf));
+
+        // Blacklist must never be consulted when timestamp validation already failed
+        $this->mockBlacklist->shouldNotReceive('has');
 
         try {
             $this->manager->parse($testTokenString);
-            $this->fail('Expected exception was not thrown.');
-        } catch (\Kylesean\Jwt\Exception\TokenNotYetValidException $e) {
-            $this->assertStringContainsString('not yet valid', $e->getMessage());
-        } catch (TokenInvalidException $e) {
-            // LooseValidAt may frame nbf violation differently in some versions
-            $this->assertTrue(true);
+            $this->fail('Expected TokenNotYetValidException was not thrown.');
+        } catch (TokenNotYetValidException $e) {
+            $this->assertSame('Token is not yet valid (Not Before).', $e->getMessage());
+            $this->assertSame($nbf, $e->getNotBefore());
+            $this->assertArrayHasKey('not_before', $e->getContext());
         }
     }
 
@@ -530,7 +539,7 @@ class ManagerTest extends TestCase
             'exp' => $now->add(new DateInterval('PT1H'))->getTimestamp(),
             'iat' => $now->getTimestamp(),
             'nbf' => $now->getTimestamp(),
-            'jti' => 'iss_check_jti'
+            'jti' => 'iss_check_jti',
         ], 'test_secret_key_for_hs256_at_least_32_bytes_long');
 
         // Enable issuer requirement
@@ -542,7 +551,7 @@ class ManagerTest extends TestCase
         $this->mockOurValidator->shouldReceive('checkClaims')->once()
             ->with(
                 Mockery::type(TokenInterface::class),
-                Mockery::on(fn($expected) => isset($expected['iss']) && $expected['iss'] === 'test-issuer'),
+                Mockery::on(fn ($expected) => isset($expected['iss']) && $expected['iss'] === 'test-issuer'),
                 []
             )
             ->andReturnUndefined();
@@ -593,7 +602,7 @@ class ManagerTest extends TestCase
             'iat' => $now->getTimestamp(),
             'nbf' => $now->getTimestamp(),
             'user_id' => 'old_user',
-            'sub' => 'old_sub'
+            'sub' => 'old_sub',
         ], 'test_secret_key_for_hs256_at_least_32_bytes_long');
 
         $this->mockBlacklist->shouldReceive('has')->once()->andReturn(false);

@@ -38,7 +38,7 @@ class GenJwtKeyCommandTest extends TestCase
 
         // Default getOption handler returns null for any unspecified option
         $mockInput->shouldReceive('getOption')
-            ->andReturnUsing(fn(string $name) => $options[$name] ?? null)
+            ->andReturnUsing(fn (string $name) => $options[$name] ?? null)
             ->byDefault();
 
         return $mockInput;
@@ -53,6 +53,7 @@ class GenJwtKeyCommandTest extends TestCase
         $mockOutput->shouldReceive('error')->byDefault();
         $mockOutput->shouldReceive('info')->byDefault();
         $mockOutput->shouldReceive('warning')->byDefault();
+
         return $mockOutput;
     }
 

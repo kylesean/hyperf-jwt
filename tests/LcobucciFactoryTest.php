@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Kylesean\Jwt\Tests;
 
+use Hyperf\Contract\ConfigInterface;
 use Kylesean\Jwt\Exception\JwtException;
 use Kylesean\Jwt\Factory\LcobucciFactory;
-use Hyperf\Contract\ConfigInterface;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Signer\Hmac\Sha256 as HmacSha256;

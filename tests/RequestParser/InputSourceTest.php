@@ -21,6 +21,7 @@ class InputSourceTest extends TestCase
     {
         $request = Mockery::mock(ServerRequestInterface::class);
         $request->shouldReceive('getParsedBody')->andReturn($body)->byDefault();
+
         return $request;
     }
 

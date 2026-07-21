@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Kylesean\Jwt\Tests;
 
 use DateTimeImmutable;
-use Kylesean\Jwt\PayloadFactory;
 use Hyperf\Contract\ConfigInterface;
+use Kylesean\Jwt\PayloadFactory;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -29,11 +29,13 @@ class PayloadFactoryTest extends TestCase
     private function createPayloadFactory(array $configGetReturns = []): PayloadFactory
     {
         // Set default return behavior for ConfigInterface::get
-        // If key is not specified in $configGetReturns, return second argument (default value)
+        // If a key is not specified in $configGetReturns, return the second argument
+        // (default value). Keys explicitly mapped to null simulate a config entry
+        // whose value is null (array_key_exists semantics, not ?? semantics).
         $this->mockConfig->shouldReceive('get')
             ->with(Mockery::any(), Mockery::any()) // Match any key and default value
             ->andReturnUsing(function ($key, $default) use ($configGetReturns) {
-                return $configGetReturns[$key] ?? $default; // Use specified return value if set in test
+                return array_key_exists($key, $configGetReturns) ? $configGetReturns[$key] : $default;
             })
             ->byDefault(); // Allow override in specific tests
 
@@ -69,6 +71,19 @@ class PayloadFactoryTest extends TestCase
         $this->assertEquals(10, $factory->getNbfOffsetSeconds());
         $this->assertEquals('my-custom-issuer', $factory->getIssuer());
         $this->assertEquals(['aud1', 'aud2'], $factory->getAudience());
+    }
+
+    public function testConstructorHandlesNullIssuerAndAudienceFromConfig(): void
+    {
+        // A null config value means "no iss/aud claim" and must not TypeError;
+        // it is normalized to an empty string which Manager treats as "skip".
+        $factory = $this->createPayloadFactory([
+            'jwt.issuer' => null,
+            'jwt.audience' => null,
+        ]);
+
+        $this->assertSame('', $factory->getIssuer());
+        $this->assertSame('', $factory->getAudience());
     }
 
     public function testSetAndGetTtl(): void

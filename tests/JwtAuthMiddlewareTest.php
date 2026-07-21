@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace Kylesean\Jwt\Tests;
 
 use Hyperf\Context\Context;
+use Hyperf\Contract\ConfigInterface;
 use Kylesean\Jwt\Contract\ManagerInterface;
 use Kylesean\Jwt\Contract\TokenInterface;
 use Kylesean\Jwt\Exception\TokenInvalidException;
 use Kylesean\Jwt\Middleware\JwtAuthMiddleware;
-use Hyperf\Contract\ConfigInterface;
-use Hyperf\HttpServer\Contract\ResponseInterface as HttpResponse;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -25,7 +24,6 @@ class JwtAuthMiddlewareTest extends TestCase
     use MockeryPHPUnitIntegration;
 
     protected Mockery\MockInterface|ManagerInterface $mockManager;
-    protected Mockery\MockInterface|HttpResponse $mockHttpResponse;
     protected Mockery\MockInterface|ConfigInterface $mockConfig;
     protected Mockery\MockInterface|ServerRequestInterface $mockRequest;
     protected Mockery\MockInterface|RequestHandlerInterface $mockHandler;
@@ -38,7 +36,6 @@ class JwtAuthMiddlewareTest extends TestCase
         Context::destroy(JwtAuthMiddleware::CONTEXT_KEY);
 
         $this->mockManager = Mockery::mock(ManagerInterface::class);
-        $this->mockHttpResponse = Mockery::mock(HttpResponse::class);
         $this->mockConfig = Mockery::mock(ConfigInterface::class);
         $this->mockRequest = Mockery::mock(ServerRequestInterface::class);
         $this->mockHandler = Mockery::mock(RequestHandlerInterface::class);
@@ -55,7 +52,6 @@ class JwtAuthMiddlewareTest extends TestCase
     {
         return new JwtAuthMiddleware(
             $this->mockManager,
-            $this->mockHttpResponse,
             $this->mockConfig
         );
     }
