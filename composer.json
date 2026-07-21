@@ -17,23 +17,28 @@
   ],
   "require": {
     "php": "^8.2",
+    "hyperf/cache": "^3.0 || ^3.1",
+    "hyperf/command": "^3.1",
+    "hyperf/context": "^3.0 || ^3.1",
+    "hyperf/contract": "^3.0 || ^3.1",
+    "hyperf/http-server": "^3.1",
+    "hyperf/stringable": "^3.0 || ^3.1",
     "lcobucci/jwt": "^5.4",
     "psr/clock": "^1.0",
-    "hyperf/contract": "^3.0 || ^3.1",
-    "hyperf/cache": "^3.0 || ^3.1",
-    "hyperf/stringable": "^3.0 || ^3.1",
+    "psr/container": "^1.1 || ^2.0",
+    "psr/http-message": "^1.1 || ^2.0",
+    "psr/http-server-handler": "^1.0",
+    "psr/http-server-middleware": "^1.0",
+    "psr/log": "^1.0 || ^2.0 || ^3.0",
     "psr/simple-cache": "^2.0 || ^3.0"
   },
   "require-dev": {
     "friendsofphp/php-cs-fixer": "^3.0",
-    "hyperf/command": "^3.1",
     "hyperf/framework": "^3.0 || ^3.1",
-    "hyperf/http-server": "^3.1",
     "hyperf/support": "^3.1",
     "mockery/mockery": "^1.6",
-    "phpstan/phpstan": "^1.0",
+    "phpstan/phpstan": "^2.0",
     "phpunit/phpunit": "^10.0 || ^11.0",
-    "psr/container": "^1.0 || ^2.0",
     "swoole/ide-helper": "dev-master",
     "symfony/var-dumper": "^6.0 || ^7.0"
   },
@@ -50,13 +55,13 @@
   "minimum-stability": "dev",
   "prefer-stable": true,
   "config": {
-    "optimize-autoloader": true,
     "sort-packages": true
   },
   "scripts": {
-    "test": "phpunit -c phpunit.xml --colors=always",
-    "analyse": "phpstan analyse --memory-limit 1024M -l 0 -c phpstan.neon ./src ./tests",
-    "cs-fix": "php-cs-fixer fix $1"
+    "test": "phpunit -c phpunit.xml.dist --colors=always",
+    "analyse": "phpstan analyse -c phpstan.neon.dist --memory-limit 1024M",
+    "cs-fix": "php-cs-fixer fix",
+    "cs-check": "php-cs-fixer fix --dry-run --diff"
   },
   "extra": {
     "hyperf": {

@@ -13,7 +13,9 @@ $finder = PhpCsFixer\Finder::create()
     ->ignoreVCS(true);
 
 $config = new PhpCsFixer\Config();
-return $config->setRules([
+return $config
+    ->setRiskyAllowed(true)
+    ->setRules([
         '@PSR12' => true,
         'array_syntax' => ['syntax' => 'short'],
         'ordered_imports' => ['sort_algorithm' => 'alpha'],
@@ -35,7 +37,6 @@ return $config->setRules([
         ],
         'method_argument_space' => [
             'on_multiline' => 'ensure_fully_multiline',
-            'keep_multiple_lines' => true,
         ],
         'declare_strict_types' => true,
     ])
