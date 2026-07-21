@@ -13,6 +13,25 @@ use RuntimeException;
  */
 class JwtException extends RuntimeException
 {
-    // You can add some common properties or methods here if all sub-exceptions need them.
-    // For example, an error code.
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function __construct(
+        string $message = '',
+        int $code = 0,
+        ?\Throwable $previous = null,
+        protected array $context = []
+    ) {
+        parent::__construct($message, $code, $previous);
+    }
+
+    /**
+     * Get contextual metadata associated with the exception.
+     *
+     * @return array<string, mixed>
+     */
+    public function getContext(): array
+    {
+        return $this->context;
+    }
 }

@@ -127,7 +127,9 @@ class ManagerTest extends TestCase
         // --- Configure our custom Validator ---
         $this->mockOurValidator->shouldReceive('setRequiredClaims')->withAnyArgs()->andReturnSelf()->byDefault();
         $this->mockOurValidator->shouldReceive('setLeeway')->withAnyArgs()->andReturnSelf()->byDefault();
+        $this->mockOurValidator->shouldReceive('setClock')->withAnyArgs()->andReturnSelf()->byDefault();
         $this->mockOurValidator->shouldReceive('checkClaims')->withAnyArgs()->andReturnUndefined()->byDefault();
+        $this->mockOurValidator->shouldReceive('checkTimestamps')->withAnyArgs()->andReturnUndefined()->byDefault();
         $this->mockOurValidator->shouldReceive('getLeeway')->andReturn(0)->byDefault();
         $this->mockOurValidator->shouldReceive('getRequiredClaims')->andReturn([])->byDefault();
 
@@ -241,23 +243,29 @@ class ManagerTest extends TestCase
 
     public function testParseTokenThrowsTokenExpiredException(): void
     {
-        $this->expectException(TokenExpiredException::class);
-
         $now = new DateTimeImmutable();
+        $expiredTime = $now->sub(new DateInterval('PT1S'));
         $testTokenString = $this->generateTestHs256TokenString([
-            'exp' => $now->sub(new DateInterval('PT1S'))->getTimestamp(), // Expired
-            // Other necessary claims...
+            'exp' => $expiredTime->getTimestamp(),
             'iat' => $now->sub(new DateInterval('PT1H'))->getTimestamp(),
             'nbf' => $now->sub(new DateInterval('PT1H'))->getTimestamp(),
             'jti' => 'expired_jti'
         ], 'test_secret_key_for_hs256_at_least_32_bytes_long');
 
-        // Lcobucci validator detects expiration first
-        // Blacklist and our custom Validator will not be called
-        $this->mockBlacklist->shouldNotReceive('has');
-        $this->mockOurValidator->shouldNotReceive('validate');
+        $this->mockOurValidator->shouldReceive('checkTimestamps')
+            ->once()
+            ->andThrow(new TokenExpiredException('Token has expired.', $expiredTime));
 
-        $this->manager->parse($testTokenString);
+        $this->mockBlacklist->shouldNotReceive('has');
+
+        try {
+            $this->manager->parse($testTokenString);
+            $this->fail('Expected TokenExpiredException was not thrown');
+        } catch (TokenExpiredException $e) {
+            $this->assertSame('Token has expired.', $e->getMessage());
+            $this->assertSame($expiredTime, $e->getExpiredAt());
+            $this->assertArrayHasKey('expired_at', $e->getContext());
+        }
     }
 
     public function testParseTokenFromRequestSuccessfully(): void

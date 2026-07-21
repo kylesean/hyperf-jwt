@@ -97,7 +97,7 @@ class Validator implements ValidatorInterface
 
         if ($exp = $token->getExpirationTime()) {
             if ($exp->add($leewayInterval) < $now) {
-                throw new TokenExpiredException('Token has expired.');
+                throw new TokenExpiredException('Token has expired.', $exp);
             }
         } elseif (in_array('exp', $this->requiredClaims, true)) {
             throw new TokenInvalidException('Expiration Time (exp) claim is required but not present.');
@@ -105,14 +105,14 @@ class Validator implements ValidatorInterface
 
         if ($nbf = $token->getNotBefore()) {
             if ($nbf->sub($leewayInterval) > $now) {
-                throw new TokenNotYetValidException('Token is not yet valid (Not Before).');
+                throw new TokenNotYetValidException('Token is not yet valid (Not Before).', $nbf);
             }
         } elseif (in_array('nbf', $this->requiredClaims, true)) {
             throw new TokenInvalidException('Not Before (nbf) claim is required but not present.');
         }
 
         if ($iat = $token->getIssuedAt()) {
-            if ($iat->add($leewayInterval) > $now) {
+            if ($iat->sub($leewayInterval) > $now) {
                 throw new TokenInvalidException('Issued At (iat) claim cannot be in the future.');
             }
         } elseif (in_array('iat', $this->requiredClaims, true)) {

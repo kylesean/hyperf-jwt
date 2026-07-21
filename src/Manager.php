@@ -20,12 +20,7 @@ use Hyperf\HttpServer\Contract\RequestInterface as HyperfRequestInterface;
 use Lcobucci\JWT\Configuration as LcobucciConfiguration;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\UnencryptedToken;
-use Lcobucci\JWT\Validation\Constraint\IssuedBy;
-use Lcobucci\JWT\Validation\Constraint\LooseValidAt;
-use Lcobucci\JWT\Validation\Constraint\PermittedFor;
 use Lcobucci\JWT\Validation\Constraint\SignedWith;
-use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
-use Lcobucci\JWT\Validation\ConstraintViolation;
 use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
 use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -81,6 +76,7 @@ class Manager implements ManagerInterface
         }
         $this->validator->setRequiredClaims($filteredRequiredClaims);
         $this->validator->setLeeway((int) $this->hyperfConfig->get('jwt.leeway', 0));
+        $this->validator->setClock($this->clock);
     }
 
     public function issueToken(array $customClaims = [], mixed $subject = null): TokenInterface
@@ -155,7 +151,7 @@ class Manager implements ManagerInterface
             throw new TokenInvalidException('Could not decode token: ' . $e->getMessage(), (int) $e->getCode(), $e);
         }
 
-        // 1. signature validation (this is a prerequisite for all subsequent operations)
+        // 1. Signature validation (prerequisite for all subsequent operations)
         try {
             $this->lcobucciConfig->validator()->assert($lcobucciToken, new SignedWith(
                 $this->lcobucciConfig->signer(),
@@ -167,22 +163,15 @@ class Manager implements ManagerInterface
 
         $ourToken = $this->container->make(Token::class, ['lcobucciToken' => $lcobucciToken]);
 
-        // 2. use Lcobucci native constraints for unified validation
-        $constraints = $this->buildValidationConstraints();
-        if (!empty($constraints)) {
-            try {
-                $this->lcobucciConfig->validator()->assert($lcobucciToken, ...$constraints);
-            } catch (RequiredConstraintsViolated $e) {
-                $this->handleValidationFailure($e);
-            }
-        }
+        // 2. Strongly typed standard timestamp validation (exp, nbf, iat)
+        $this->validator->checkTimestamps($ourToken);
 
-        // 3. blacklist check
+        // 3. Blacklist check
         if ($this->hyperfConfig->get('jwt.blacklist_enabled', true) && $this->blacklist->has($ourToken)) {
             throw new TokenInvalidException('Token has been blacklisted.');
         }
 
-        // 4. parse various expected claims for validation
+        // 4. Expected claims validation (iss, aud, custom claims)
         $expectedClaims = [];
         if ($this->hyperfConfig->get('jwt.required_claims.iss', false)) {
             $expectedClaims['iss'] = $this->payloadFactory->getIssuer();
@@ -191,68 +180,9 @@ class Manager implements ManagerInterface
             $expectedClaims['aud'] = $this->payloadFactory->getAudience();
         }
 
-        // 5. custom and required claims validation (including Issuer / Audience's OR logic support)
         $this->validator->checkClaims($ourToken, $expectedClaims, $this->validator->getRequiredClaims());
 
         return $ourToken;
-    }
-
-    /**
-     * build Lcobucci validation constraint chain
-     * use LooseValidAt for time validation (allow missing some time claims)
-     *
-     * @return array<\Lcobucci\JWT\Validation\Constraint>
-     */
-    protected function buildValidationConstraints(): array
-    {
-        $constraints = [];
-
-        // time validation: use LooseValidAt (allow missing some time claims)
-        $leeway = $this->validator->getLeeway();
-        $leewayInterval = $leeway > 0
-            ? DateInterval::createFromDateString($leeway . ' seconds')
-            : new DateInterval('PT0S');
-        $constraints[] = new LooseValidAt($this->clock, $leewayInterval);
-
-        return $constraints;
-    }
-
-    /**
-     * handle Lcobucci validation failure, convert to business semantic exception
-     *
-     * @throws TokenExpiredException
-     * @throws TokenNotYetValidException
-     * @throws TokenInvalidException
-     */
-    protected function handleValidationFailure(RequiredConstraintsViolated $e): void
-    {
-        $violations = $e->violations();
-        $firstViolation = $violations[0] ?? null;
-
-        if ($firstViolation instanceof ConstraintViolation) {
-            $constraintClass = $firstViolation->constraint;
-
-            // judge exception type based on specific constraint class name
-            if ($constraintClass === LooseValidAt::class || $constraintClass === StrictValidAt::class) {
-                $message = $firstViolation->getMessage();
-                $lowerMessage = strtolower($message);
-
-                if (str_contains($lowerMessage, 'expired')) {
-                    throw new TokenExpiredException('The token is expired.', (int) $e->getCode(), $e);
-                }
-
-                if (str_contains($lowerMessage, 'cannot be used yet') || str_contains($lowerMessage, 'not yet valid') || str_contains($lowerMessage, 'not before')) {
-                    throw new TokenNotYetValidException('The token is not yet valid.', (int) $e->getCode(), $e);
-                }
-
-                if (str_contains($lowerMessage, 'issued in the future')) {
-                    throw new TokenInvalidException('The token was issued in the future.', (int) $e->getCode(), $e);
-                }
-            }
-        }
-
-        $message = $firstViolation?->getMessage() ?? 'Token validation failed.';
-        throw new TokenInvalidException($message, (int) $e->getCode(), $e);
     }
 
     public function parseTokenFromRequest(?ServerRequestInterface $request = null): ?TokenInterface
